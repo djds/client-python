@@ -4,7 +4,8 @@ import datetime
 import io
 import json
 import logging
-from typing import Union
+from dataclasses import dataclass
+from typing import Any, Union
 
 import magic
 import requests
@@ -48,11 +49,11 @@ from pycti.utils.opencti_stix2 import OpenCTIStix2
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
+@dataclass
 class File:
-    def __init__(self, name, data, mime="text/plain"):
-        self.name = name
-        self.data = data
-        self.mime = mime
+    name: str
+    data: Any
+    mime: str = "text/plain"
 
 
 class OpenCTIApiClient:
@@ -312,7 +313,7 @@ class OpenCTIApiClient:
         elif level == "info":
             logging.info(message)
         elif level == "warning":
-            logging.warn(message)
+            logging.warning(message)
         elif level == "error":
             logging.error(message)
 
