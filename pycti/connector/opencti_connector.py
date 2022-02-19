@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Dict, List, Union
 
 # Scope definition
 # EXTERNAL_IMPORT = None
@@ -19,7 +20,7 @@ class ConnectorType(Enum):
     STREAM = "STREAM"  # Read the stream and do something
 
 
-class OpenCTIConnector:
+class OpenCTIConnector:  # pylint: disable=too-few-public-methods
     """Main class for OpenCTI connector
 
     :param connector_id: id for the connector (valid uuid4)
@@ -33,7 +34,7 @@ class OpenCTIConnector:
     :raises ValueError: if the connector type is not valid
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         connector_id: str,
         connector_name: str,
@@ -46,7 +47,7 @@ class OpenCTIConnector:
         self.name = connector_name
         self.type = ConnectorType(connector_type)
         if self.type is None:
-            raise ValueError("Invalid connector type: " + connector_type)
+            raise ValueError(f"Invalid connector type: {connector_type}")
         if scope and len(scope) > 0:
             self.scope = scope.split(",")
         else:
@@ -54,7 +55,7 @@ class OpenCTIConnector:
         self.auto = auto
         self.only_contextual = only_contextual
 
-    def to_input(self) -> dict:
+    def to_input(self) -> Dict[str, Dict[str, Union[str, bool, List[str]]]]:
         """connector input to use in API query
 
         :return: dict with connector data
