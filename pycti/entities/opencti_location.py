@@ -1,132 +1,139 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class Location:
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            name
-            description
-            latitude
-            longitude
-            precision
-            x_opencti_aliases
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
+        }
+        revoked
+        confidence
+        created
+        modified
+        name
+        description
+        latitude
+        longitude
+        precision
+        x_opencti_aliases
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-        """
-
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List Location objects
 
         :param types: the list of types
@@ -135,9 +142,7 @@ class Location:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of Location objects
-    """
-
-    def list(self, **kwargs):
+        """
         types = kwargs.get("types", None)
         filters = kwargs.get("filters", None)
         search = kwargs.get("search", None)
@@ -152,7 +157,7 @@ class Location:
             first = 500
 
         self.opencti.log(
-            "info", "Listing Locations with filters " + json.dumps(filters) + "."
+            "info", f"Listing Locations with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -192,20 +197,19 @@ class Location:
             result["data"]["locations"], with_pagination
         )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a Location object
 
         :param id: the id of the Location
         :param filters: the filters to apply if no id provided
         :return Location object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Location {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Location {{{id_}}}.")
             query = (
                 """
                 query Location($id: String!) {
@@ -221,29 +225,26 @@ class Location:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["location"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_location] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log(
+            "error", "[opencti_location] Missing parameters: id or filters"
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Location object
 
         :param name: the name of the Location
         :return Location object
-    """
-
-    def create(self, **kwargs):
-        type = kwargs.get("type", None)
+        """
+        type_ = kwargs.get("type", None)
         stix_id = kwargs.get("stix_id", None)
         created_by = kwargs.get("createdBy", None)
         object_marking = kwargs.get("objectMarking", None)
@@ -264,7 +265,7 @@ class Location:
         update = kwargs.get("update", False)
 
         if name is not None:
-            self.opencti.log("info", "Creating Location {" + name + "}.")
+            self.opencti.log("info", f"Creating Location {{{name}}}.")
             query = """
                 mutation LocationAdd($input: LocationAddInput) {
                     locationAdd(input: $input) {
@@ -279,7 +280,7 @@ class Location:
                 query,
                 {
                     "input": {
-                        "type": type,
+                        "type": type_,
                         "stix_id": stix_id,
                         "createdBy": created_by,
                         "objectMarking": object_marking,
@@ -302,17 +303,16 @@ class Location:
                 },
             )
             return self.opencti.process_multiple_fields(result["data"]["locationAdd"])
-        else:
-            self.opencti.log("error", "Missing parameters: name")
+        self.opencti.log("error", "Missing parameters: name")
+        return None
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import an Location object from a STIX2 object
 
         :param stixObject: the Stix-Object Location
         :return Location object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
         extras = kwargs.get("extras", {})
         update = kwargs.get("update", False)
@@ -326,21 +326,21 @@ class Location:
             name = stix_object["region"]
         else:
             self.opencti.log("error", "[opencti_location] Missing name")
-            return
+            return None
         if "x_opencti_location_type" in stix_object:
-            type = stix_object["x_opencti_location_type"]
+            type_ = stix_object["x_opencti_location_type"]
         else:
             if "city" in stix_object:
-                type = "City"
+                type_ = "City"
             elif "country" in stix_object:
-                type = "Country"
+                type_ = "Country"
             elif "region" in stix_object:
-                type = "Region"
+                type_ = "Region"
             else:
-                type = "Position"
+                type_ = "Position"
         if stix_object is not None:
             return self.create(
-                type=type,
+                type=type_,
                 stix_id=stix_object["id"],
                 createdBy=extras["created_by_id"]
                 if "created_by_id" in extras
@@ -380,7 +380,5 @@ class Location:
                 x_opencti_aliases=self.opencti.stix2.pick_aliases(stix_object),
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_location] Missing parameters: stixObject"
-            )
+        self.opencti.log("error", "[opencti_location] Missing parameters: stixObject")
+        return None

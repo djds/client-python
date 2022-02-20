@@ -1,145 +1,148 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
-from typing import Union
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Dict, Optional
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class ThreatActor:
     """Main ThreatActor class for OpenCTI
 
     :param opencti: instance of :py:class:`~pycti.api.opencti_api_client.OpenCTIApiClient`
     """
 
-    def __init__(self, opencti):
-        """Create an instance of ThreatActor"""
-
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            name
-            description
-            aliases
-            threat_actor_types
-            first_seen
-            last_seen
-            roles
-            goals
-            sophistication
-            resource_level
-            primary_motivation
-            secondary_motivations
-            personal_motivations
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
+        }
+        revoked
+        confidence
+        created
+        modified
+        name
+        description
+        aliases
+        threat_actor_types
+        first_seen
+        last_seen
+        roles
+        goals
+        sophistication
+        resource_level
+        primary_motivation
+        secondary_motivations
+        personal_motivations
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-        """
+        }
+    """
 
     def list(self, **kwargs) -> dict:
         """List Threat-Actor objects
@@ -170,7 +173,7 @@ class ThreatActor:
             first = 500
 
         self.opencti.log(
-            "info", "Listing Threat-Actors with filters " + json.dumps(filters) + "."
+            "info", f"Listing Threat-Actors with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -209,7 +212,7 @@ class ThreatActor:
             result["data"]["threatActors"], with_pagination
         )
 
-    def read(self, **kwargs) -> Union[dict, None]:
+    def read(self, **kwargs) -> Optional[Dict]:
         """Read a Threat-Actor object
 
         read can be either used with a known OpenCTI entity `id` or by using a
@@ -223,11 +226,11 @@ class ThreatActor:
         :param list filters: the filters to apply if no id provided
         """
 
-        id = kwargs.get("id", None)
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Threat-Actor {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Threat-Actor {{{id}}}.")
             query = (
                 """
                 query ThreatActor($id: String!) {
@@ -243,19 +246,17 @@ class ThreatActor:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["threatActor"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_threat_actor] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log(
+            "error", "[opencti_threat_actor] Missing parameters: id or filters"
+        )
+        return None
 
     def create(self, **kwargs):
         """Create a Threat-Actor object
@@ -320,7 +321,7 @@ class ThreatActor:
         update = kwargs.get("update", False)
 
         if name is not None and description is not None:
-            self.opencti.log("info", "Creating Threat-Actor {" + name + "}.")
+            self.opencti.log("info", f"Creating Threat-Actor {{{name}}}.")
             query = """
                 mutation ThreatActorAdd($input: ThreatActorAddInput) {
                     threatActorAdd(input: $input) {
@@ -365,20 +366,19 @@ class ThreatActor:
             return self.opencti.process_multiple_fields(
                 result["data"]["threatActorAdd"]
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_threat_actor] Missing parameters: name and description",
-            )
+        self.opencti.log(
+            "error",
+            "[opencti_threat_actor] Missing parameters: name and description",
+        )
+        return None
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import an Threat-Actor object from a STIX2 object
 
         :param stixObject: the Stix-Object Intrusion-Set
         :return Intrusion-Set object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
         extras = kwargs.get("extras", {})
         update = kwargs.get("update", False)
@@ -441,7 +441,7 @@ class ThreatActor:
                 else None,
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_attack_pattern] Missing parameters: stixObject"
-            )
+        self.opencti.log(
+            "error", "[opencti_attack_pattern] Missing parameters: stixObject"
+        )
+        return None

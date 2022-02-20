@@ -1,141 +1,148 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from pycti.utils.constants import IdentityTypes
+from ..utils.constants import IdentityTypes
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class Identity:
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            identity_class
-            name
-            description
-            x_opencti_aliases
-            contact_information
-            ... on Individual {
-                x_opencti_firstname
-                x_opencti_lastname
-            }
-            ... on Organization {
-                x_opencti_organization_type
-                x_opencti_reliability
-            }
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
+        }
+        revoked
+        confidence
+        created
+        modified
+        identity_class
+        name
+        description
+        x_opencti_aliases
+        contact_information
+        ... on Individual {
+            x_opencti_firstname
+            x_opencti_lastname
+        }
+        ... on Organization {
+            x_opencti_organization_type
+            x_opencti_reliability
+        }
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-        """
-
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List Identity objects
 
         :param types: the list of types
@@ -144,9 +151,7 @@ class Identity:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of Identity objects
-    """
-
-    def list(self, **kwargs):
+        """
         types = kwargs.get("types", None)
         filters = kwargs.get("filters", None)
         search = kwargs.get("search", None)
@@ -161,7 +166,7 @@ class Identity:
             first = 500
 
         self.opencti.log(
-            "info", "Listing Identities with filters " + json.dumps(filters) + "."
+            "info", f"Listing Identities with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -201,20 +206,19 @@ class Identity:
             result["data"]["identities"], with_pagination
         )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a Identity object
 
         :param id: the id of the Identity
         :param filters: the filters to apply if no id provided
         :return Identity object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Identity {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Identity {{{id_}}}.")
             query = (
                 """
                 query Identity($id: String!) {
@@ -230,29 +234,26 @@ class Identity:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["identity"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_identity] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log(
+            "error", "[opencti_identity] Missing parameters: id or filters"
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Identity object
 
         :param name: the name of the Identity
         :return Identity object
-    """
-
-    def create(self, **kwargs):
-        type = kwargs.get("type", None)
+        """
+        type_ = kwargs.get("type", None)
         stix_id = kwargs.get("stix_id", None)
         created_by = kwargs.get("createdBy", None)
         object_marking = kwargs.get("objectMarking", None)
@@ -275,8 +276,8 @@ class Identity:
         x_opencti_stix_ids = kwargs.get("x_opencti_stix_ids", None)
         update = kwargs.get("update", False)
 
-        if type is not None and name is not None and description is not None:
-            self.opencti.log("info", "Creating Identity {" + name + "}.")
+        if type_ is not None and name is not None and description is not None:
+            self.opencti.log("info", f"Creating Identity {{{name}}}.")
             input_variables = {
                 "stix_id": stix_id,
                 "createdBy": created_by,
@@ -296,7 +297,7 @@ class Identity:
                 "x_opencti_stix_ids": x_opencti_stix_ids,
                 "update": update,
             }
-            if type == IdentityTypes.ORGANIZATION.value:
+            if type_ == IdentityTypes.ORGANIZATION.value:
                 query = """
                     mutation OrganizationAdd($input: OrganizationAddInput) {
                         organizationAdd(input: $input) {
@@ -312,7 +313,7 @@ class Identity:
                 ] = x_opencti_organization_type
                 input_variables["x_opencti_reliability"] = x_opencti_reliability
                 result_data_field = "organizationAdd"
-            elif type == IdentityTypes.INDIVIDUAL.value:
+            elif type_ == IdentityTypes.INDIVIDUAL.value:
                 query = """
                     mutation IndividualAdd($input: IndividualAddInput) {
                         individualAdd(input: $input) {
@@ -337,7 +338,7 @@ class Identity:
                         }
                     }
                 """
-                input_variables["type"] = type
+                input_variables["type"] = type_
                 result_data_field = "identityAdd"
             result = self.opencti.query(
                 query,
@@ -348,31 +349,30 @@ class Identity:
             return self.opencti.process_multiple_fields(
                 result["data"][result_data_field]
             )
-        else:
-            self.opencti.log("error", "Missing parameters: type, name and description")
+        self.opencti.log("error", "Missing parameters: type, name and description")
+        return None
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import an Identity object from a STIX2 object
 
         :param stixObject: the Stix-Object Identity
         :return Identity object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
         extras = kwargs.get("extras", {})
         update = kwargs.get("update", False)
         if stix_object is not None:
-            type = "Organization"
+            type_ = "Organization"
             if "identity_class" in stix_object:
                 if stix_object["identity_class"] == "individual":
-                    type = "Individual"
+                    type_ = "Individual"
                 elif stix_object["identity_class"] == "class":
-                    type = "Sector"
+                    type_ = "Sector"
                 elif stix_object["identity_class"] == "system":
-                    type = "System"
+                    type_ = "System"
             return self.create(
-                type=type,
+                type=type_,
                 stix_id=stix_object["id"],
                 createdBy=extras["created_by_id"]
                 if "created_by_id" in extras
@@ -423,7 +423,5 @@ class Identity:
                 else None,
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_identity] Missing parameters: stixObject"
-            )
+        self.opencti.log("error", "[opencti_identity] Missing parameters: stixObject")
+        return None

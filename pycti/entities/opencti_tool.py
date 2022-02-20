@@ -1,145 +1,152 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class Tool:
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            name
-            description
-            aliases
-            tool_types
-            tool_version
-            killChainPhases {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        kill_chain_name
-                        phase_name
-                        x_opencti_order
-                        created
-                        modified
+        }
+        revoked
+        confidence
+        created
+        modified
+        name
+        description
+        aliases
+        tool_types
+        tool_version
+        killChainPhases {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    kill_chain_name
+                    phase_name
+                    x_opencti_order
+                    created
+                    modified
+                }
+            }
+        }
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
-                    }
-                }
-            }
-        """
-
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List Tool objects
 
         :param filters: the filters to apply
@@ -147,9 +154,7 @@ class Tool:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of Tool objects
-    """
-
-    def list(self, **kwargs):
+        """
         filters = kwargs.get("filters", None)
         search = kwargs.get("search", None)
         first = kwargs.get("first", 100)
@@ -162,9 +167,7 @@ class Tool:
         if get_all:
             first = 100
 
-        self.opencti.log(
-            "info", "Listing Tools with filters " + json.dumps(filters) + "."
-        )
+        self.opencti.log("info", f"Listing Tools with filters {json.dumps(filters)}.")
         query = (
             """
             query Tools($filters: [ToolsFiltering], $search: String, $first: Int, $after: ID, $orderBy: ToolsOrdering, $orderMode: OrderingMode) {
@@ -204,7 +207,7 @@ class Tool:
             final_data = final_data + data
             while result["data"]["tools"]["pageInfo"]["hasNextPage"]:
                 after = result["data"]["tools"]["pageInfo"]["endCursor"]
-                self.opencti.log("info", "Listing Tools after " + after)
+                self.opencti.log("info", f"Listing Tools after {after}")
                 result = self.opencti.query(
                     query,
                     {
@@ -219,25 +222,21 @@ class Tool:
                 data = self.opencti.process_multiple(result["data"]["tools"])
                 final_data = final_data + data
             return final_data
-        else:
-            return self.opencti.process_multiple(
-                result["data"]["tools"], with_pagination
-            )
+        return self.opencti.process_multiple(result["data"]["tools"], with_pagination)
 
-    """
+    def read(self, **kwargs):
+        """
         Read a Tool object
 
         :param id: the id of the Tool
         :param filters: the filters to apply if no id provided
         :return Tool object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Tool {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Tool {{{id_}}}.")
             query = (
                 """
                 query Tool($id: String!) {
@@ -253,28 +252,23 @@ class Tool:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["tool"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_tool] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log("error", "[opencti_tool] Missing parameters: id or filters")
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Tool object
 
         :param name: the name of the Tool
         :return Tool object
-    """
-
-    def create(self, **kwargs):
+        """
         stix_id = kwargs.get("stix_id", None)
         created_by = kwargs.get("createdBy", None)
         object_marking = kwargs.get("objectMarking", None)
@@ -295,7 +289,7 @@ class Tool:
         update = kwargs.get("update", False)
 
         if name is not None and description is not None:
-            self.opencti.log("info", "Creating Tool {" + name + "}.")
+            self.opencti.log("info", f"Creating Tool {{{name}}}.")
             query = """
                 mutation ToolAdd($input: ToolAddInput) {
                     toolAdd(input: $input) {
@@ -332,19 +326,18 @@ class Tool:
                 },
             )
             return self.opencti.process_multiple_fields(result["data"]["toolAdd"])
-        else:
-            self.opencti.log(
-                "error", "[opencti_tool] Missing parameters: name and description"
-            )
+        self.opencti.log(
+            "error", "[opencti_tool] Missing parameters: name and description"
+        )
+        return None
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import an Tool object from a STIX2 object
 
         :param stixObject: the Stix-Object Tool
         :return Tool object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
         extras = kwargs.get("extras", {})
         update = kwargs.get("update", False)
@@ -391,5 +384,5 @@ class Tool:
                 else None,
                 update=update,
             )
-        else:
-            self.opencti.log("error", "[opencti_tool] Missing parameters: stixObject")
+        self.opencti.log("error", "[opencti_tool] Missing parameters: stixObject")
+        return None

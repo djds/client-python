@@ -1,307 +1,165 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import magic
 
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import File, OpenCTIApiClient
 
+
+@dataclass
 class StixCyberObservable:
-    def __init__(self, opencti, file):
-        self.opencti = opencti
-        self.file = file
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    file: "File"
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            observable_value
-            x_opencti_description
-            x_opencti_score
-            indicators {
-                edges {
-                    node {
-                        id
-                        pattern
-                        pattern_type
-                    }
+        }
+        observable_value
+        x_opencti_description
+        x_opencti_score
+        indicators {
+            edges {
+                node {
+                    id
+                    pattern
+                    pattern_type
                 }
             }
-            ... on AutonomousSystem {
-                number
-                name
-                rir
-            }
-            ... on Directory {
-                path
-                path_enc
-                ctime
-                mtime
-                atime
-            }
-            ... on DomainName {
-                value
-            }
-            ... on EmailAddr {
-                value
-                display_name
-            }
-            ... on EmailMessage {
-                is_multipart
-                attribute_date
-                content_type
-                message_id
-                subject
-                received_lines
-                body
-            }
-            ... on Artifact {
-                mime_type
-                payload_bin
-                url
-                encryption_algorithm
-                decryption_key
-                hashes {
-                    algorithm
-                    hash
-                }
-                importFiles {
-                    edges {
-                        node {
-                            id
-                            name
-                            size
-                        }
-                    }
-                }
-            }
-            ... on StixFile {
-                extensions
-                size
-                name
-                name_enc
-                magic_number_hex
-                mime_type
-                ctime
-                mtime
-                atime
-                x_opencti_additional_names
-                hashes {
-                  algorithm
-                  hash
-                }
-            }
-            ... on X509Certificate {
-                is_self_signed
-                version
-                serial_number
-                signature_algorithm
-                issuer
-                subject
-                subject_public_key_algorithm
-                subject_public_key_modulus
-                subject_public_key_exponent
-                validity_not_before
-                validity_not_after
-                hashes {
-                  algorithm
-                  hash
-                }
-            }
-            ... on IPv4Addr {
-                value
-            }
-            ... on IPv6Addr {
-                value
-            }
-            ... on MacAddr {
-                value
-            }
-            ... on Mutex {
-                name
-            }
-            ... on NetworkTraffic {
-                extensions
-                start
-                end
-                is_active
-                src_port
-                dst_port
-                protocols
-                src_byte_count
-                dst_byte_count
-                src_packets
-                dst_packets
-            }
-            ... on Process {
-                extensions
-                is_hidden
-                pid
-                created_time
-                cwd
-                command_line
-                environment_variables
-            }
-            ... on Software {
-                name
-                cpe
-                swid
-                languages
-                vendor
-                version
-            }
-            ... on Url {
-                value
-            }
-            ... on UserAccount {
-                extensions
-                user_id
-                credential
-                account_login
-                account_type
-                display_name
-                is_service_account
-                is_privileged
-                can_escalate_privs
-                is_disabled
-                account_created
-                account_expires
-                credential_last_changed
-                account_first_login
-                account_last_login
-            }
-            ... on WindowsRegistryKey {
-                attribute_key
-                modified_time
-                number_of_subkeys
-            }
-            ... on WindowsRegistryValueType {
-                name
-                data
-                data_type
-            }
-            ... on X509V3ExtensionsType {
-                basic_constraints
-                name_constraints
-                policy_constraints
-                key_usage
-                extended_key_usage
-                subject_key_identifier
-                authority_key_identifier
-                subject_alternative_name
-                issuer_alternative_name
-                subject_directory_attributes
-                crl_distribution_points
-                inhibit_any_policy
-                private_key_usage_period_not_before
-                private_key_usage_period_not_after
-                certificate_policies
-                policy_mappings
-            }
-            ... on XOpenCTICryptographicKey {
-                value
-            }
-            ... on XOpenCTICryptocurrencyWallet {
-                value
-            }
-            ... on XOpenCTIHostname {
-                value
-            }
-            ... on XOpenCTIText {
-                value
-            }
-            ... on XOpenCTIUserAgent {
-                value
+        }
+        ... on AutonomousSystem {
+            number
+            name
+            rir
+        }
+        ... on Directory {
+            path
+            path_enc
+            ctime
+            mtime
+            atime
+        }
+        ... on DomainName {
+            value
+        }
+        ... on EmailAddr {
+            value
+            display_name
+        }
+        ... on EmailMessage {
+            is_multipart
+            attribute_date
+            content_type
+            message_id
+            subject
+            received_lines
+            body
+        }
+        ... on Artifact {
+            mime_type
+            payload_bin
+            url
+            encryption_algorithm
+            decryption_key
+            hashes {
+                algorithm
+                hash
             }
             importFiles {
                 edges {
@@ -309,16 +167,165 @@ class StixCyberObservable:
                         id
                         name
                         size
-                        metaData {
-                            mimetype
-                            version
-                        }
                     }
                 }
             }
-        """
-
+        }
+        ... on StixFile {
+            extensions
+            size
+            name
+            name_enc
+            magic_number_hex
+            mime_type
+            ctime
+            mtime
+            atime
+            x_opencti_additional_names
+            hashes {
+              algorithm
+              hash
+            }
+        }
+        ... on X509Certificate {
+            is_self_signed
+            version
+            serial_number
+            signature_algorithm
+            issuer
+            subject
+            subject_public_key_algorithm
+            subject_public_key_modulus
+            subject_public_key_exponent
+            validity_not_before
+            validity_not_after
+            hashes {
+              algorithm
+              hash
+            }
+        }
+        ... on IPv4Addr {
+            value
+        }
+        ... on IPv6Addr {
+            value
+        }
+        ... on MacAddr {
+            value
+        }
+        ... on Mutex {
+            name
+        }
+        ... on NetworkTraffic {
+            extensions
+            start
+            end
+            is_active
+            src_port
+            dst_port
+            protocols
+            src_byte_count
+            dst_byte_count
+            src_packets
+            dst_packets
+        }
+        ... on Process {
+            extensions
+            is_hidden
+            pid
+            created_time
+            cwd
+            command_line
+            environment_variables
+        }
+        ... on Software {
+            name
+            cpe
+            swid
+            languages
+            vendor
+            version
+        }
+        ... on Url {
+            value
+        }
+        ... on UserAccount {
+            extensions
+            user_id
+            credential
+            account_login
+            account_type
+            display_name
+            is_service_account
+            is_privileged
+            can_escalate_privs
+            is_disabled
+            account_created
+            account_expires
+            credential_last_changed
+            account_first_login
+            account_last_login
+        }
+        ... on WindowsRegistryKey {
+            attribute_key
+            modified_time
+            number_of_subkeys
+        }
+        ... on WindowsRegistryValueType {
+            name
+            data
+            data_type
+        }
+        ... on X509V3ExtensionsType {
+            basic_constraints
+            name_constraints
+            policy_constraints
+            key_usage
+            extended_key_usage
+            subject_key_identifier
+            authority_key_identifier
+            subject_alternative_name
+            issuer_alternative_name
+            subject_directory_attributes
+            crl_distribution_points
+            inhibit_any_policy
+            private_key_usage_period_not_before
+            private_key_usage_period_not_after
+            certificate_policies
+            policy_mappings
+        }
+        ... on XOpenCTICryptographicKey {
+            value
+        }
+        ... on XOpenCTICryptocurrencyWallet {
+            value
+        }
+        ... on XOpenCTIHostname {
+            value
+        }
+        ... on XOpenCTIText {
+            value
+        }
+        ... on XOpenCTIUserAgent {
+            value
+        }
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
+                    }
+                }
+            }
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List StixCyberObservable objects
 
         :param types: the array of types
@@ -327,9 +334,7 @@ class StixCyberObservable:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row
         :return List of StixCyberObservable objects
-    """
-
-    def list(self, **kwargs):
+        """
         types = kwargs.get("types", None)
         filters = kwargs.get("filters", None)
         search = kwargs.get("search", None)
@@ -346,7 +351,7 @@ class StixCyberObservable:
 
         self.opencti.log(
             "info",
-            "Listing StixCyberObservables with filters " + json.dumps(filters) + ".",
+            f"Listing StixCyberObservables with filters {json.dumps(filters)}.",
         )
         query = (
             """
@@ -389,7 +394,7 @@ class StixCyberObservable:
             final_data = final_data + data
             while result["data"]["stixCyberObservables"]["pageInfo"]["hasNextPage"]:
                 after = result["data"]["stixCyberObservables"]["pageInfo"]["endCursor"]
-                self.opencti.log("info", "Listing StixCyberObservables after " + after)
+                self.opencti.log("info", f"Listing StixCyberObservables after {after}")
                 result = self.opencti.query(
                     query,
                     {
@@ -407,25 +412,23 @@ class StixCyberObservable:
                 )
                 final_data = final_data + data
             return final_data
-        else:
-            return self.opencti.process_multiple(
-                result["data"]["stixCyberObservables"], with_pagination
-            )
+        return self.opencti.process_multiple(
+            result["data"]["stixCyberObservables"], with_pagination
+        )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a StixCyberObservable object
 
         :param id: the id of the StixCyberObservable
         :param filters: the filters to apply if no id provided
         :return StixCyberObservable object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading StixCyberObservable {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading StixCyberObservable {{{id_}}}.")
             query = (
                 """
                     query StixCyberObservable($id: String!) {
@@ -441,38 +444,35 @@ class StixCyberObservable:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(
                 result["data"]["stixCyberObservable"]
             )
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters, customAttributes=custom_attributes)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_stix_cyber_observable] Missing parameters: id or filters",
-            )
             return None
+        self.opencti.log(
+            "error",
+            "[opencti_stix_cyber_observable] Missing parameters: id or filters",
+        )
+        return None
 
-    """
+    def add_file(self, **kwargs):
+        """
         Upload a file in this Observable
 
         :param id: the Stix-Cyber-Observable id
         :param file_name
         :param data
         :return void
-    """
-
-    def add_file(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         file_name = kwargs.get("file_name", None)
         data = kwargs.get("data", None)
         mime_type = kwargs.get("mime_type", "text/plain")
-        if id is not None and file_name is not None:
+        if id_ is not None and file_name is not None:
             final_file_name = os.path.basename(file_name)
             query = """
                     mutation StixCyberObservableEdit($id: ID!, $file: Upload!) {
@@ -485,6 +485,7 @@ class StixCyberObservable:
                     }
                  """
             if data is None:
+                # pylint: disable-next=consider-using-with
                 data = open(file_name, "rb")
                 if file_name.endswith(".json"):
                     mime_type = "application/json"
@@ -492,31 +493,25 @@ class StixCyberObservable:
                     mime_type = magic.from_file(file_name, mime=True)
             self.opencti.log(
                 "info",
-                "Uploading a file {"
-                + final_file_name
-                + "} in Stix-Cyber-Observable {"
-                + id
-                + "}.",
+                f"Uploading a file {{{final_file_name}}} in Stix-Cyber-Observable {{{id_}}}.",
             )
             return self.opencti.query(
                 query,
-                {"id": id, "file": (self.file(final_file_name, data, mime_type))},
+                {"id": id_, "file": (self.file(final_file_name, data, mime_type))},
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_stix_cyber_observable Missing parameters: id or file_name",
-            )
-            return None
+        self.opencti.log(
+            "error",
+            "[opencti_stix_cyber_observable Missing parameters: id or file_name",
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Stix-Observable object
 
         :param observableData: the data of the observable (STIX2 structure)
         :return Stix-Observable object
-    """
-
-    def create(self, **kwargs):
+        """
         observable_data = kwargs.get("observableData", {})
         simple_observable_id = kwargs.get("simple_observable_id", None)
         simple_observable_key = kwargs.get("simple_observable_key", None)
@@ -539,32 +534,32 @@ class StixCyberObservable:
         attribute = None
         if simple_observable_key is not None:
             key_split = simple_observable_key.split(".")
-            type = key_split[0].title()
+            type_ = key_split[0].title()
             attribute = key_split[1]
             if attribute not in ["hashes", "extensions"]:
                 observable_data[attribute] = simple_observable_value
         else:
-            type = (
+            type_ = (
                 observable_data["type"].title() if "type" in observable_data else None
             )
-        if type is None:
-            return
-        if type.lower() == "file":
-            type = "StixFile"
-        elif type.lower() == "ipv4-addr":
-            type = "IPv4-Addr"
-        elif type.lower() == "ipv6-addr":
-            type = "IPv6-Addr"
-        elif type.lower() == "x-opencti-hostname":
-            type = "X-OpenCTI-Hostname"
-        elif type.lower() == "x-opencti-cryptocurrency-wallet":
-            type = "X-OpenCTI-Cryptocurrency-Wallet"
-        elif type.lower() == "x-opencti-user-agent":
-            type = "X-OpenCTI-User-Agent"
-        elif type.lower() == "x-opencti-cryptographic-key":
-            type = "X-OpenCTI-Cryptographic-Key"
-        elif type.lower() == "x-opencti-text":
-            type = "X-OpenCTI-Text"
+        if type_ is None:
+            return None
+        if type_.lower() == "file":
+            type_ = "StixFile"
+        elif type_.lower() == "ipv4-addr":
+            type_ = "IPv4-Addr"
+        elif type_.lower() == "ipv6-addr":
+            type_ = "IPv6-Addr"
+        elif type_.lower() == "x-opencti-hostname":
+            type_ = "X-OpenCTI-Hostname"
+        elif type_.lower() == "x-opencti-cryptocurrency-wallet":
+            type_ = "X-OpenCTI-Cryptocurrency-Wallet"
+        elif type_.lower() == "x-opencti-user-agent":
+            type_ = "X-OpenCTI-User-Agent"
+        elif type_.lower() == "x-opencti-cryptographic-key":
+            type_ = "X-OpenCTI-Cryptographic-Key"
+        elif type_.lower() == "x-opencti-text":
+            type_ = "X-OpenCTI-Text"
 
         x_opencti_description = (
             observable_data["x_opencti_description"]
@@ -586,36 +581,24 @@ class StixCyberObservable:
             stix_id = simple_observable_id
 
         hashes = []
-        if (
-            simple_observable_key is not None
-            and simple_observable_key.lower() == "file.hashes.md5"
-        ):
-            hashes.append({"algorithm": "MD5", "hash": simple_observable_value})
-        if (
-            simple_observable_key is not None
-            and simple_observable_key.lower() == "file.hashes.sha-1"
-        ):
-            hashes.append({"algorithm": "SHA-1", "hash": simple_observable_value})
-        if (
-            simple_observable_key is not None
-            and simple_observable_key.lower() == "file.hashes.sha-256"
-        ):
-            hashes.append({"algorithm": "SHA-256", "hash": simple_observable_value})
+        if simple_observable_key is not None:
+            if simple_observable_key.lower() == "file.hashes.md5":
+                hashes.append({"algorithm": "MD5", "hash": simple_observable_value})
+            if simple_observable_key.lower() == "file.hashes.sha-1":
+                hashes.append({"algorithm": "SHA-1", "hash": simple_observable_value})
+            if simple_observable_key.lower() == "file.hashes.sha-256":
+                hashes.append({"algorithm": "SHA-256", "hash": simple_observable_value})
         if "hashes" in observable_data:
             for key, value in observable_data["hashes"].items():
                 hashes.append({"algorithm": key, "hash": value})
 
-        if type is not None:
+        if type_ is not None:
             self.opencti.log(
                 "info",
-                "Creating Stix-Cyber-Observable {"
-                + type
-                + "} with indicator at "
-                + str(create_indicator)
-                + ".",
+                f"Creating Stix-Cyber-Observable {{{type_}}} with indicator at {str(create_indicator)}.",
             )
             input_variables = {
-                "type": type,
+                "type": type_,
                 "stix_id": stix_id,
                 "x_opencti_score": x_opencti_score,
                 "x_opencti_description": x_opencti_description,
@@ -717,7 +700,7 @@ class StixCyberObservable:
                     }
                 }
             """
-            if type == "Autonomous-System":
+            if type_ == "Autonomous-System":
                 input_variables["AutonomousSystem"] = {
                     "number": observable_data["number"],
                     "name": observable_data["name"]
@@ -725,7 +708,7 @@ class StixCyberObservable:
                     else None,
                     "rir": observable_data["rir"] if "rir" in observable_data else None,
                 }
-            elif type == "Directory":
+            elif type_ == "Directory":
                 input_variables["Directory"] = {
                     "path": observable_data["path"],
                     "path_enc": observable_data["path_enc"]
@@ -741,18 +724,18 @@ class StixCyberObservable:
                     if "atime" in observable_data
                     else None,
                 }
-            elif type == "Domain-Name":
+            elif type_ == "Domain-Name":
                 input_variables["DomainName"] = {"value": observable_data["value"]}
                 if attribute is not None:
                     input_variables["DomainName"][attribute] = simple_observable_value
-            elif type == "Email-Addr":
+            elif type_ == "Email-Addr":
                 input_variables["EmailAddr"] = {
                     "value": observable_data["value"],
                     "display_name": observable_data["display_name"]
                     if "display_name" in observable_data
                     else None,
                 }
-            elif type == "Email-Message":
+            elif type_ == "Email-Message":
                 input_variables["EmailMessage"] = {
                     "is_multipart": observable_data["is_multipart"]
                     if "is_multipart" in observable_data
@@ -773,7 +756,7 @@ class StixCyberObservable:
                     if "body" in observable_data
                     else None,
                 }
-            elif type == "Email-Mime-Part-Type":
+            elif type_ == "Email-Mime-Part-Type":
                 input_variables["EmailMimePartType"] = {
                     "body": observable_data["body"]
                     if "body" in observable_data
@@ -785,7 +768,7 @@ class StixCyberObservable:
                     if "content_disposition" in observable_data
                     else None,
                 }
-            elif type == "Artifact":
+            elif type_ == "Artifact":
                 input_variables["Artifact"] = {
                     "hashes": hashes if len(hashes) > 0 else None,
                     "mime_type": observable_data["mime_type"]
@@ -802,7 +785,7 @@ class StixCyberObservable:
                     if "decryption_key" in observable_data
                     else None,
                 }
-            elif type == "StixFile":
+            elif type_ == "StixFile":
                 input_variables["StixFile"] = {
                     "hashes": hashes if len(hashes) > 0 else None,
                     "size": observable_data["size"]
@@ -835,7 +818,7 @@ class StixCyberObservable:
                     if "x_opencti_additional_names" in observable_data
                     else None,
                 }
-            elif type == "X509-Certificate":
+            elif type_ == "X509-Certificate":
                 input_variables["X509Certificate"] = {
                     "hashes": hashes if len(hashes) > 0 else None,
                     "is_self_signed": observable_data["is_self_signed"]
@@ -878,31 +861,31 @@ class StixCyberObservable:
                     if "subject_public_key_exponent" in observable_data
                     else None,
                 }
-            elif type == "IPv4-Addr":
+            elif type_ == "IPv4-Addr":
                 input_variables["IPv4Addr"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "IPv6-Addr":
+            elif type_ == "IPv6-Addr":
                 input_variables["IPv6Addr"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "Mac-Addr":
+            elif type_ == "Mac-Addr":
                 input_variables["MacAddr"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "Mutex":
+            elif type_ == "Mutex":
                 input_variables["Mutex"] = {
                     "name": observable_data["name"]
                     if "name" in observable_data
                     else None,
                 }
-            elif type == "Network-Traffic":
+            elif type_ == "Network-Traffic":
                 input_variables["NetworkTraffic"] = {
                     "start": observable_data["start"]
                     if "start" in observable_data
@@ -933,7 +916,7 @@ class StixCyberObservable:
                     if "dst_packets" in observable_data
                     else None,
                 }
-            elif type == "Process":
+            elif type_ == "Process":
                 input_variables["Process"] = {
                     "is_hidden": observable_data["is_hidden"]
                     if "is_hidden" in observable_data
@@ -950,7 +933,7 @@ class StixCyberObservable:
                     if "environment_variables" in observable_data
                     else None,
                 }
-            elif type == "Software":
+            elif type_ == "Software":
                 input_variables["Software"] = {
                     "name": observable_data["name"]
                     if "name" in observable_data
@@ -969,13 +952,13 @@ class StixCyberObservable:
                     if "version" in observable_data
                     else None,
                 }
-            elif type == "Url":
+            elif type_ == "Url":
                 input_variables["Url"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "User-Account":
+            elif type_ == "User-Account":
                 input_variables["UserAccount"] = {
                     "user_id": observable_data["user_id"]
                     if "user_id" in observable_data
@@ -1022,7 +1005,7 @@ class StixCyberObservable:
                     if "account_last_login" in observable_data
                     else None,
                 }
-            elif type == "Windows-Registry-Key":
+            elif type_ == "Windows-Registry-Key":
                 input_variables["WindowsRegistryKey"] = {
                     "attribute_key": observable_data["key"]
                     if "key" in observable_data
@@ -1034,7 +1017,7 @@ class StixCyberObservable:
                     if "number_of_subkeys" in observable_data
                     else None,
                 }
-            elif type == "Windows-Registry-Value-Type":
+            elif type_ == "Windows-Registry-Value-Type":
                 input_variables["WindowsRegistryKeyValueType"] = {
                     "name": observable_data["name"]
                     if "name" in observable_data
@@ -1046,7 +1029,7 @@ class StixCyberObservable:
                     if "data_type" in observable_data
                     else None,
                 }
-            elif type == "X509-V3-Extensions-Type":
+            elif type_ == "X509-V3-Extensions-Type":
                 input_variables["X509V3ExtensionsType"] = {
                     "basic_constraints": observable_data["basic_constraints"]
                     if "basic_constraints" in observable_data
@@ -1111,31 +1094,31 @@ class StixCyberObservable:
                     if "policy_mappings" in observable_data
                     else None,
                 }
-            elif type == "X-OpenCTI-Cryptographic-Key":
+            elif type_ == "X-OpenCTI-Cryptographic-Key":
                 input_variables["XOpenCTICryptographicKey"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "X-OpenCTI-Cryptocurrency-Wallet":
+            elif type_ == "X-OpenCTI-Cryptocurrency-Wallet":
                 input_variables["XOpenCTICryptocurrencyWallet"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "X-OpenCTI-Hostname":
+            elif type_ == "X-OpenCTI-Hostname":
                 input_variables["XOpenCTIHostname"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "X-OpenCTI-Text":
+            elif type_ == "X-OpenCTI-Text":
                 input_variables["XOpenCTIText"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
                     else None,
                 }
-            elif type == "X-OpenCTI-User-Agent":
+            elif type_ == "X-OpenCTI-User-Agent":
                 input_variables["XOpenCTIUserAgent"] = {
                     "value": observable_data["value"]
                     if "value" in observable_data
@@ -1145,17 +1128,16 @@ class StixCyberObservable:
             return self.opencti.process_multiple_fields(
                 result["data"]["stixCyberObservableAdd"]
             )
-        else:
-            self.opencti.log("error", "Missing parameters: type")
+        self.opencti.log("error", "Missing parameters: type")
+        return None
 
-    """
+    def upload_artifact(self, **kwargs):
+        """
         Upload an artifact
 
         :param file_path: the file path
         :return Stix-Observable object
-    """
-
-    def upload_artifact(self, **kwargs):
+        """
         file_name = kwargs.get("file_name", None)
         data = kwargs.get("data", None)
         mime_type = kwargs.get("mime_type", "text/plain")
@@ -1169,9 +1151,7 @@ class StixCyberObservable:
             final_file_name = os.path.basename(file_name)
             self.opencti.log(
                 "info",
-                "Creating Stix-Cyber-Observable {artifact}} with indicator at "
-                + str(create_indicator)
-                + ".",
+                f"Creating Stix-Cyber-Observable {{artifact}}}} with indicator at {str(create_indicator)}.",
             )
             query = """
                 mutation ArtifactImport($file: Upload!, $x_opencti_description: String, $createdBy: String, $objectMarking: [String], $objectLabel: [String]) {
@@ -1290,6 +1270,7 @@ class StixCyberObservable:
                 }
             """
             if data is None:
+                # pylint: disable-next=consider-using-with
                 data = open(file_name, "rb")
                 if file_name.endswith(".json"):
                     mime_type = "application/json"
@@ -1309,22 +1290,21 @@ class StixCyberObservable:
             return self.opencti.process_multiple_fields(
                 result["data"]["artifactImport"]
             )
-        else:
-            self.opencti.log("error", "Missing parameters: type")
+        self.opencti.log("error", "Missing parameters: type")
+        return None
 
-    """
+    def update_field(self, **kwargs):
+        """
         Update a Stix-Observable object field
 
         :param id: the Stix-Observable id
         :param input: the input of the field
         :return The updated Stix-Observable object
-    """
-
-    def update_field(self, **kwargs):
-        id = kwargs.get("id", None)
-        input = kwargs.get("input", None)
-        if id is not None and input is not None:
-            self.opencti.log("info", "Updating Stix-Observable {" + id + "}.")
+        """
+        id_ = kwargs.get("id", None)
+        input_ = kwargs.get("input", None)
+        if id_ is not None and input_ is not None:
+            self.opencti.log("info", f"Updating Stix-Observable {{{id_}}}.")
             query = """
                 mutation StixCyberObservableEdit($id: ID!, $input: [EditInput]!) {
                     stixCyberObservableEdit(id: $id) {
@@ -1339,31 +1319,29 @@ class StixCyberObservable:
             result = self.opencti.query(
                 query,
                 {
-                    "id": id,
-                    "input": input,
+                    "id": id_,
+                    "input": input_,
                 },
             )
             return self.opencti.process_multiple_fields(
                 result["data"]["stixCyberObservableEdit"]["fieldPatch"]
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_stix_cyber_observable_update_field] Missing parameters: id and input",
-            )
-            return None
+        self.opencti.log(
+            "error",
+            "[opencti_stix_cyber_observable_update_field] Missing parameters: id and input",
+        )
+        return None
 
-    """
+    def delete(self, **kwargs) -> None:
+        """
         Delete a Stix-Observable
 
         :param id: the Stix-Observable id
         :return void
-    """
-
-    def delete(self, **kwargs):
-        id = kwargs.get("id", None)
-        if id is not None:
-            self.opencti.log("info", "Deleting Stix-Observable {" + id + "}.")
+        """
+        id_ = kwargs.get("id", None)
+        if id_ is not None:
+            self.opencti.log("info", f"Deleting Stix-Observable {{{id_}}}.")
             query = """
                  mutation StixCyberObservableEdit($id: ID!) {
                      stixCyberObservableEdit(id: $id) {
@@ -1371,32 +1349,25 @@ class StixCyberObservable:
                      }
                  }
              """
-            self.opencti.query(query, {"id": id})
-        else:
-            self.opencti.log(
-                "error", "[opencti_stix_cyber_observable_delete] Missing parameters: id"
-            )
-            return None
+            self.opencti.query(query, {"id": id_})
+        self.opencti.log(
+            "error", "[opencti_stix_cyber_observable_delete] Missing parameters: id"
+        )
 
-    """
+    def update_created_by(self, **kwargs):
+        """
         Update the Identity author of a Stix-Cyber-Observable object (created_by)
 
         :param id: the id of the Stix-Cyber-Observable
         :param identity_id: the id of the Identity
         :return Boolean
-    """
-
-    def update_created_by(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         identity_id = kwargs.get("identity_id", None)
-        if id is not None:
+        if id_ is not None:
             self.opencti.log(
                 "info",
-                "Updating author of Stix-Cyber-Observable {"
-                + id
-                + "} with Identity {"
-                + str(identity_id)
-                + "}",
+                f"Updating author of Stix-Cyber-Observable {{{id_}}} with Identity {{{str(identity_id)}}}",
             )
             custom_attributes = """
                 id
@@ -1436,7 +1407,7 @@ class StixCyberObservable:
                 self.opencti.query(
                     query,
                     {
-                        "id": id,
+                        "id": id_,
                         "toId": stix_domain_object["createdBy"]["id"],
                         "relationship_type": "created-by",
                     },
@@ -1453,29 +1424,27 @@ class StixCyberObservable:
                     }
                """
                 variables = {
-                    "id": id,
+                    "id": id_,
                     "input": {
                         "toId": identity_id,
                         "relationship_type": "created-by",
                     },
                 }
                 self.opencti.query(query, variables)
-        else:
-            self.opencti.log("error", "Missing parameters: id")
-            return False
+        self.opencti.log("error", "Missing parameters: id")
+        return False
 
-    """
+    def add_marking_definition(self, **kwargs) -> bool:
+        """
         Add a Marking-Definition object to Stix-Cyber-Observable object (object_marking_refs)
 
         :param id: the id of the Stix-Cyber-Observable
         :param marking_definition_id: the id of the Marking-Definition
         :return Boolean
-    """
-
-    def add_marking_definition(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         marking_definition_id = kwargs.get("marking_definition_id", None)
-        if id is not None and marking_definition_id is not None:
+        if id_ is not None and marking_definition_id is not None:
             custom_attributes = """
                 id
                 objectMarking {
@@ -1494,7 +1463,9 @@ class StixCyberObservable:
                     }
                 }
             """
-            stix_cyber_observable = self.read(id=id, customAttributes=custom_attributes)
+            stix_cyber_observable = self.read(
+                id=id_, customAttributes=custom_attributes
+            )
             if stix_cyber_observable is None:
                 self.opencti.log(
                     "error", "Cannot add Marking-Definition, entity not found"
@@ -1502,60 +1473,47 @@ class StixCyberObservable:
                 return False
             if marking_definition_id in stix_cyber_observable["objectMarkingIds"]:
                 return True
-            else:
-                self.opencti.log(
-                    "info",
-                    "Adding Marking-Definition {"
-                    + marking_definition_id
-                    + "} to Stix-Cyber-Observable {"
-                    + id
-                    + "}",
-                )
-                query = """
-                   mutation StixCyberObservableAddRelation($id: ID!, $input: StixMetaRelationshipAddInput) {
-                       stixCyberObservableEdit(id: $id) {
-                            relationAdd(input: $input) {
-                                id
-                            }
-                       }
-                   }
-                """
-                self.opencti.query(
-                    query,
-                    {
-                        "id": id,
-                        "input": {
-                            "toId": marking_definition_id,
-                            "relationship_type": "object-marking",
-                        },
-                    },
-                )
-                return True
-        else:
             self.opencti.log(
-                "error", "Missing parameters: id and marking_definition_id"
+                "info",
+                f"Adding Marking-Definition {{{marking_definition_id}}} to Stix-Cyber-Observable {{{id_}}}",
             )
-            return False
+            query = """
+               mutation StixCyberObservableAddRelation($id: ID!, $input: StixMetaRelationshipAddInput) {
+                   stixCyberObservableEdit(id: $id) {
+                        relationAdd(input: $input) {
+                            id
+                        }
+                   }
+               }
+            """
+            self.opencti.query(
+                query,
+                {
+                    "id": id_,
+                    "input": {
+                        "toId": marking_definition_id,
+                        "relationship_type": "object-marking",
+                    },
+                },
+            )
+            return True
+        self.opencti.log("error", "Missing parameters: id and marking_definition_id")
+        return False
 
-    """
+    def remove_marking_definition(self, **kwargs) -> bool:
+        """
         Remove a Marking-Definition object to Stix-Cyber-Observable object
 
         :param id: the id of the Stix-Cyber-Observable
         :param marking_definition_id: the id of the Marking-Definition
         :return Boolean
-    """
-
-    def remove_marking_definition(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         marking_definition_id = kwargs.get("marking_definition_id", None)
-        if id is not None and marking_definition_id is not None:
+        if id_ is not None and marking_definition_id is not None:
             self.opencti.log(
                 "info",
-                "Removing Marking-Definition {"
-                + marking_definition_id
-                + "} from Stix-Cyber-Observable {"
-                + id
-                + "}",
+                f"Removing Marking-Definition {{{marking_definition_id}}} from Stix-Cyber-Observable {{{id_}}}",
             )
             query = """
                mutation StixCyberObservableRemoveRelation($id: ID!, $toId: String!, $relationship_type: String!) {
@@ -1569,26 +1527,24 @@ class StixCyberObservable:
             self.opencti.query(
                 query,
                 {
-                    "id": id,
+                    "id": id_,
                     "toId": marking_definition_id,
                     "relationship_type": "object-marking",
                 },
             )
             return True
-        else:
-            self.opencti.log("error", "Missing parameters: id and label_id")
-            return False
+        self.opencti.log("error", "Missing parameters: id and label_id")
+        return False
 
-    """
+    def add_label(self, **kwargs) -> bool:
+        """
         Add a Label object to Stix-Cyber-Observable object
 
         :param id: the id of the Stix-Cyber-Observable
         :param label_id: the id of the Label
         :return Boolean
-    """
-
-    def add_label(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         label_id = kwargs.get("label_id", None)
         label_name = kwargs.get("label_name", None)
         if label_name is not None:
@@ -1603,7 +1559,7 @@ class StixCyberObservable:
         if id is not None and label_id is not None:
             self.opencti.log(
                 "info",
-                "Adding label {" + label_id + "} to Stix-Cyber-Observable {" + id + "}",
+                f"Adding label {{{label_id}}} to Stix-Cyber-Observable {{{id_}}}",
             )
             query = """
                mutation StixCyberObservableAddRelation($id: ID!, $input: StixMetaRelationshipAddInput) {
@@ -1617,7 +1573,7 @@ class StixCyberObservable:
             self.opencti.query(
                 query,
                 {
-                    "id": id,
+                    "id": id_,
                     "input": {
                         "toId": label_id,
                         "relationship_type": "object-label",
@@ -1625,20 +1581,18 @@ class StixCyberObservable:
                 },
             )
             return True
-        else:
-            self.opencti.log("error", "Missing parameters: id and label_id")
-            return False
+        self.opencti.log("error", "Missing parameters: id and label_id")
+        return False
 
-    """
+    def remove_label(self, **kwargs) -> bool:
+        """
         Remove a Label object to Stix-Cyber-Observable object
 
         :param id: the id of the Stix-Cyber-Observable
         :param label_id: the id of the Label
         :return Boolean
-    """
-
-    def remove_label(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         label_id = kwargs.get("label_id", None)
         label_name = kwargs.get("label_name", None)
         if label_name is not None:
@@ -1647,14 +1601,10 @@ class StixCyberObservable:
             )
             if label:
                 label_id = label["id"]
-        if id is not None and label_id is not None:
+        if id_ is not None and label_id is not None:
             self.opencti.log(
                 "info",
-                "Removing label {"
-                + label_id
-                + "} to Stix-Cyber-Observable {"
-                + id
-                + "}",
+                f"Removing label {{{label_id}}} to Stix-Cyber-Observable {{{id}_}}",
             )
             query = """
                mutation StixCyberObservableRemoveRelation($id: ID!, $toId: String!, $relationship_type: String!) {
@@ -1668,28 +1618,26 @@ class StixCyberObservable:
             self.opencti.query(
                 query,
                 {
-                    "id": id,
+                    "id": id_,
                     "toId": label_id,
                     "relationship_type": "object-label",
                 },
             )
             return True
-        else:
-            self.opencti.log("error", "Missing parameters: id and label_id")
-            return False
+        self.opencti.log("error", "Missing parameters: id and label_id")
+        return False
 
-    """
+    def add_external_reference(self, **kwargs) -> bool:
+        """
         Add a External-Reference object to Stix-Cyber-Observable object (object_marking_refs)
 
         :param id: the id of the Stix-Cyber-Observable
         :param marking_definition_id: the id of the Marking-Definition
         :return Boolean
-    """
-
-    def add_external_reference(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         external_reference_id = kwargs.get("external_reference_id", None)
-        if id is not None and external_reference_id is not None:
+        if id_ is not None and external_reference_id is not None:
             custom_attributes = """
                 id
                 externalReferences {
@@ -1717,60 +1665,47 @@ class StixCyberObservable:
                 return False
             if external_reference_id in stix_domain_object["externalReferencesIds"]:
                 return True
-            else:
-                self.opencti.log(
-                    "info",
-                    "Adding External-Reference {"
-                    + external_reference_id
-                    + "} to Stix-Cyber-Observable {"
-                    + id
-                    + "}",
-                )
-                query = """
-                   mutation StixCyberObservabletEditRelationAdd($id: ID!, $input: StixMetaRelationshipAddInput) {
-                       stixCyberObservableEdit(id: $id) {
-                            relationAdd(input: $input) {
-                                id
-                            }
-                       }
-                   }
-                """
-                self.opencti.query(
-                    query,
-                    {
-                        "id": id,
-                        "input": {
-                            "toId": external_reference_id,
-                            "relationship_type": "external-reference",
-                        },
-                    },
-                )
-                return True
-        else:
             self.opencti.log(
-                "error", "Missing parameters: id and external_reference_id"
+                "info",
+                f"Adding External-Reference {{{external_reference_id}}} to Stix-Cyber-Observable {{{id_}}}",
             )
-            return False
+            query = """
+               mutation StixCyberObservabletEditRelationAdd($id: ID!, $input: StixMetaRelationshipAddInput) {
+                   stixCyberObservableEdit(id: $id) {
+                        relationAdd(input: $input) {
+                            id
+                        }
+                   }
+               }
+            """
+            self.opencti.query(
+                query,
+                {
+                    "id": id_,
+                    "input": {
+                        "toId": external_reference_id,
+                        "relationship_type": "external-reference",
+                    },
+                },
+            )
+            return True
+        self.opencti.log("error", "Missing parameters: id and external_reference_id")
+        return False
 
-    """
+    def remove_external_reference(self, **kwargs) -> bool:
+        """
         Remove a Label object to Stix-Cyber-Observable object
 
         :param id: the id of the Stix-Cyber-Observable
         :param label_id: the id of the Label
         :return Boolean
-    """
-
-    def remove_external_reference(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         external_reference_id = kwargs.get("external_reference_id", None)
-        if id is not None and external_reference_id is not None:
+        if id_ is not None and external_reference_id is not None:
             self.opencti.log(
                 "info",
-                "Removing External-Reference {"
-                + external_reference_id
-                + "} to Stix-Cyber-Observable {"
-                + id
-                + "}",
+                f"Removing External-Reference {{{external_reference_id}}} to Stix-Cyber-Observable {{{id_}}}",
             )
             query = """
                mutation StixCyberObservableRemoveRelation($id: ID!, $toId: String!, $relationship_type: String!) {
@@ -1784,15 +1719,14 @@ class StixCyberObservable:
             self.opencti.query(
                 query,
                 {
-                    "id": id,
+                    "id": id_,
                     "toId": external_reference_id,
                     "relationship_type": "external-reference",
                 },
             )
             return True
-        else:
-            self.opencti.log("error", "Missing parameters: id and label_id")
-            return False
+        self.opencti.log("error", "Missing parameters: id and label_id")
+        return False
 
     def push_list_export(self, file_name, data, list_filters=""):
         query = """
@@ -1809,10 +1743,10 @@ class StixCyberObservable:
         )
 
     def ask_for_enrichment(self, **kwargs) -> str:
-        id = kwargs.get("id", None)
+        id_ = kwargs.get("id", None)
         connector_id = kwargs.get("connector_id", None)
 
-        if id is None or connector_id is None:
+        if id_ is None or connector_id is None:
             self.opencti.log("error", "Missing parameters: id and connector_id")
             return ""
 
@@ -1829,7 +1763,7 @@ class StixCyberObservable:
         result = self.opencti.query(
             query,
             {
-                "id": id,
+                "id": id_,
                 "connectorId": connector_id,
             },
         )

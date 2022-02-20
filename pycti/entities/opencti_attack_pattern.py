@@ -1,147 +1,154 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class AttackPattern:
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            name
-            description
-            aliases
-            x_mitre_platforms
-            x_mitre_permissions_required
-            x_mitre_detection
-            x_mitre_id
-            killChainPhases {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        kill_chain_name
-                        phase_name
-                        x_opencti_order
-                        created
-                        modified
+        }
+        revoked
+        confidence
+        created
+        modified
+        name
+        description
+        aliases
+        x_mitre_platforms
+        x_mitre_permissions_required
+        x_mitre_detection
+        x_mitre_id
+        killChainPhases {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    kill_chain_name
+                    phase_name
+                    x_opencti_order
+                    created
+                    modified
+                }
+            }
+        }
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
-                    }
-                }
-            }
-        """
-
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List Attack-Pattern objects
 
         :param filters: the filters to apply
@@ -149,9 +156,7 @@ class AttackPattern:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of Attack-Pattern objects
-    """
-
-    def list(self, **kwargs):
+        """
         filters = kwargs.get("filters", None)
         search = kwargs.get("search", None)
         first = kwargs.get("first", 500)
@@ -165,7 +170,7 @@ class AttackPattern:
             first = 500
 
         self.opencti.log(
-            "info", "Listing Attack-Patterns with filters " + json.dumps(filters) + "."
+            "info", f"Listing Attack-Patterns with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -206,7 +211,7 @@ class AttackPattern:
             final_data = final_data + data
             while result["data"]["attackPatterns"]["pageInfo"]["hasNextPage"]:
                 after = result["data"]["attackPatterns"]["pageInfo"]["endCursor"]
-                self.opencti.log("info", "Listing Attack-Patterns after " + after)
+                self.opencti.log("info", f"Listing Attack-Patterns after {after}")
                 result = self.opencti.query(
                     query,
                     {
@@ -221,25 +226,23 @@ class AttackPattern:
                 data = self.opencti.process_multiple(result["data"]["attackPatterns"])
                 final_data = final_data + data
             return final_data
-        else:
-            return self.opencti.process_multiple(
-                result["data"]["attackPatterns"], with_pagination
-            )
+        return self.opencti.process_multiple(
+            result["data"]["attackPatterns"], with_pagination
+        )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a Attack-Pattern object
 
         :param id: the id of the Attack-Pattern
         :param filters: the filters to apply if no id provided
         :return Attack-Pattern object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Attack-Pattern {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Attack-Pattern {{{id_}}}.")
             query = (
                 """
                 query AttackPattern($id: String!) {
@@ -255,28 +258,25 @@ class AttackPattern:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["attackPattern"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_attack_pattern] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log(
+            "error", "[opencti_attack_pattern] Missing parameters: id or filters"
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Attack-Pattern object
 
         :param name: the name of the Attack Pattern
         :return Attack-Pattern object
-    """
-
-    def create(self, **kwargs):
+        """
         stix_id = kwargs.get("stix_id", None)
         created_by = kwargs.get("createdBy", None)
         object_marking = kwargs.get("objectMarking", None)
@@ -299,7 +299,7 @@ class AttackPattern:
         update = kwargs.get("update", False)
 
         if name is not None and description is not None:
-            self.opencti.log("info", "Creating Attack-Pattern {" + name + "}.")
+            self.opencti.log("info", f"Creating Attack-Pattern {{{name}}}.")
             query = """
                 mutation AttackPatternAdd($input: AttackPatternAddInput) {
                     attackPatternAdd(input: $input) {
@@ -340,20 +340,19 @@ class AttackPattern:
             return self.opencti.process_multiple_fields(
                 result["data"]["attackPatternAdd"]
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_attack_pattern] Missing parameters: name and description",
-            )
+        self.opencti.log(
+            "error",
+            "[opencti_attack_pattern] Missing parameters: name and description",
+        )
+        return None
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import an Attack-Pattern object from a STIX2 object
 
         :param stixObject: the Stix-Object Attack-Pattern
         :return Attack-Pattern object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
         extras = kwargs.get("extras", {})
         update = kwargs.get("update", False)
@@ -364,12 +363,12 @@ class AttackPattern:
                 x_mitre_id = stix_object["x_mitre_id"]
             elif "external_references" in stix_object:
                 for external_reference in stix_object["external_references"]:
-                    if (
-                        external_reference["source_name"] == "mitre-attack"
-                        or external_reference["source_name"] == "mitre-pre-attack"
-                        or external_reference["source_name"] == "mitre-mobile-attack"
-                        or external_reference["source_name"] == "mitre-ics-attack"
-                        or external_reference["source_name"] == "amitt-attack"
+                    if external_reference["source_name"] in (
+                        "mitre-attack",
+                        "mitre-pre-attack",
+                        "mitre-mobile-attack",
+                        "mitre-ics-attack",
+                        "amitt-attack",
                     ):
                         x_mitre_id = (
                             external_reference["external_id"]
@@ -438,15 +437,15 @@ class AttackPattern:
                 else None,
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_attack_pattern] Missing parameters: stixObject"
-            )
+        self.opencti.log(
+            "error", "[opencti_attack_pattern] Missing parameters: stixObject"
+        )
+        return None
 
     def delete(self, **kwargs):
-        id = kwargs.get("id", None)
-        if id is not None:
-            self.opencti.log("info", "Deleting Attack Pattern {" + id + "}.")
+        id_ = kwargs.get("id", None)
+        if id_ is not None:
+            self.opencti.log("info", f"Deleting Attack Pattern {{{id_}}}.")
             query = """
                  mutation AttackPatternEdit($id: ID!) {
                      attackPatternEdit(id: $id) {
@@ -454,7 +453,5 @@ class AttackPattern:
                      }
                  }
              """
-            self.opencti.query(query, {"id": id})
-        else:
-            self.opencti.log("error", "[attack_pattern] Missing parameters: id")
-            return None
+            self.opencti.query(query, {"id": id_})
+        self.opencti.log("error", "[attack_pattern] Missing parameters: id")

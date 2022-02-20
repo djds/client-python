@@ -1,215 +1,222 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class Opinion:
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            explanation
-            authors
-            opinion
-            objects {
-                edges {
-                    node {
-                        ... on BasicObject {
-                            id
-                            entity_type
-                            parent_types
-                        }
-                        ... on BasicRelationship {
-                            id
-                            entity_type
-                            parent_types
-                        }
-                        ... on StixObject {
-                            standard_id
-                            spec_version
-                            created_at
-                            updated_at
-                        }
-                        ... on AttackPattern {
-                            name
-                        }
-                        ... on Campaign {
-                            name
-                        }
-                        ... on CourseOfAction {
-                            name
-                        }
-                        ... on Individual {
-                            name
-                        }
-                        ... on Organization {
-                            name
-                        }
-                        ... on Sector {
-                            name
-                        }
-                        ... on System {
-                            name
-                        }
-                        ... on Indicator {
-                            name
-                        }
-                        ... on Infrastructure {
-                            name
-                        }
-                        ... on IntrusionSet {
-                            name
-                        }
-                        ... on Position {
-                            name
-                        }
-                        ... on City {
-                            name
-                        }
-                        ... on Country {
-                            name
-                        }
-                        ... on Region {
-                            name
-                        }
-                        ... on Malware {
-                            name
-                        }
-                        ... on ThreatActor {
-                            name
-                        }
-                        ... on Tool {
-                            name
-                        }
-                        ... on Vulnerability {
-                            name
-                        }
-                        ... on Incident {
-                            name
-                        }
-                        ... on StixCoreRelationship {
-                            standard_id
-                            spec_version
-                            created_at
-                            updated_at
-                            relationship_type
-                        }
-                    }
-                }
-            }
-            importFiles {
-                edges {
-                    node {
+        }
+        revoked
+        confidence
+        created
+        modified
+        explanation
+        authors
+        opinion
+        objects {
+            edges {
+                node {
+                    ... on BasicObject {
                         id
+                        entity_type
+                        parent_types
+                    }
+                    ... on BasicRelationship {
+                        id
+                        entity_type
+                        parent_types
+                    }
+                    ... on StixObject {
+                        standard_id
+                        spec_version
+                        created_at
+                        updated_at
+                    }
+                    ... on AttackPattern {
                         name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
+                    }
+                    ... on Campaign {
+                        name
+                    }
+                    ... on CourseOfAction {
+                        name
+                    }
+                    ... on Individual {
+                        name
+                    }
+                    ... on Organization {
+                        name
+                    }
+                    ... on Sector {
+                        name
+                    }
+                    ... on System {
+                        name
+                    }
+                    ... on Indicator {
+                        name
+                    }
+                    ... on Infrastructure {
+                        name
+                    }
+                    ... on IntrusionSet {
+                        name
+                    }
+                    ... on Position {
+                        name
+                    }
+                    ... on City {
+                        name
+                    }
+                    ... on Country {
+                        name
+                    }
+                    ... on Region {
+                        name
+                    }
+                    ... on Malware {
+                        name
+                    }
+                    ... on ThreatActor {
+                        name
+                    }
+                    ... on Tool {
+                        name
+                    }
+                    ... on Vulnerability {
+                        name
+                    }
+                    ... on Incident {
+                        name
+                    }
+                    ... on StixCoreRelationship {
+                        standard_id
+                        spec_version
+                        created_at
+                        updated_at
+                        relationship_type
                     }
                 }
             }
-        """
-
+        }
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
+                    }
+                }
+            }
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List Opinion objects
 
         :param filters: the filters to apply
@@ -217,9 +224,7 @@ class Opinion:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of Opinion objects
-    """
-
-    def list(self, **kwargs):
+        """
         filters = kwargs.get("filters", None)
         search = kwargs.get("search", None)
         first = kwargs.get("first", 100)
@@ -233,7 +238,7 @@ class Opinion:
             first = 100
 
         self.opencti.log(
-            "info", "Listing Opinions with filters " + json.dumps(filters) + "."
+            "info", f"Listing Opinions with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -274,7 +279,7 @@ class Opinion:
             final_data = final_data + data
             while result["data"]["opinions"]["pageInfo"]["hasNextPage"]:
                 after = result["data"]["opinions"]["pageInfo"]["endCursor"]
-                self.opencti.log("info", "Listing Opinions after " + after)
+                self.opencti.log("info", f"Listing Opinions after {after}")
                 result = self.opencti.query(
                     query,
                     {
@@ -289,25 +294,23 @@ class Opinion:
                 data = self.opencti.process_multiple(result["data"]["opinions"])
                 final_data = final_data + data
             return final_data
-        else:
-            return self.opencti.process_multiple(
-                result["data"]["opinions"], with_pagination
-            )
+        return self.opencti.process_multiple(
+            result["data"]["opinions"], with_pagination
+        )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a Opinion object
 
         :param id: the id of the Opinion
         :param filters: the filters to apply if no id provided
         :return Opinion object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Opinion {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Opinion {{{id_}}}.")
             query = (
                 """
                 query Opinion($id: String!) {
@@ -323,34 +326,28 @@ class Opinion:
                 }
             """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["opinion"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
+        return None
 
-    """
+    def contains_stix_object_or_stix_relationship(self, **kwargs):
+        """
         Check if a opinion already contains a STIX entity
 
         :return Boolean
-    """
-
-    def contains_stix_object_or_stix_relationship(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         stix_object_or_stix_relationship_id = kwargs.get(
             "stixObjectOrStixRelationshipId", None
         )
-        if id is not None and stix_object_or_stix_relationship_id is not None:
+        if id_ is not None and stix_object_or_stix_relationship_id is not None:
             self.opencti.log(
                 "info",
-                "Checking StixObjectOrStixRelationship {"
-                + stix_object_or_stix_relationship_id
-                + "} in Opinion {"
-                + id
-                + "}",
+                f"Checking StixObjectOrStixRelationship {{{stix_object_or_stix_relationship_id}}} in Opinion {{{id_}}}",
             )
             query = """
                 query OpinionContainsStixObjectOrStixRelationship($id: String!, $stixObjectOrStixRelationshipId: String!) {
@@ -360,25 +357,24 @@ class Opinion:
             result = self.opencti.query(
                 query,
                 {
-                    "id": id,
+                    "id": id_,
                     "stixObjectOrStixRelationshipId": stix_object_or_stix_relationship_id,
                 },
             )
             return result["data"]["opinionContainsStixObjectOrStixRelationship"]
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_opinion] Missing parameters: id or entity_id",
-            )
+        self.opencti.log(
+            "error",
+            "[opencti_opinion] Missing parameters: id or entity_id",
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Opinion object
 
         :param name: the name of the Opinion
         :return Opinion object
-    """
-
-    def create(self, **kwargs):
+        """
         stix_id = kwargs.get("stix_id", None)
         created_by = kwargs.get("createdBy", None)
         objects = kwargs.get("objects", None)
@@ -397,7 +393,7 @@ class Opinion:
         update = kwargs.get("update", False)
 
         if opinion is not None:
-            self.opencti.log("info", "Creating Opinion {" + opinion + "}.")
+            self.opencti.log("info", f"Creating Opinion {{{opinion}}}.")
             query = """
                 mutation OpinionAdd($input: OpinionAddInput) {
                     opinionAdd(input: $input) {
@@ -432,38 +428,33 @@ class Opinion:
                 },
             )
             return self.opencti.process_multiple_fields(result["data"]["opinionAdd"])
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_opinion] Missing parameters: content",
-            )
+        self.opencti.log(
+            "error",
+            "[opencti_opinion] Missing parameters: content",
+        )
+        return None
 
-    """
+    def add_stix_object_or_stix_relationship(self, **kwargs):
+        """
         Add a Stix-Entity object to Opinion object (object_refs)
 
         :param id: the id of the Opinion
         :param entity_id: the id of the Stix-Entity
         :return Boolean
-    """
-
-    def add_stix_object_or_stix_relationship(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         stix_object_or_stix_relationship_id = kwargs.get(
             "stixObjectOrStixRelationshipId", None
         )
-        if id is not None and stix_object_or_stix_relationship_id is not None:
+        if id_ is not None and stix_object_or_stix_relationship_id is not None:
             if self.contains_stix_object_or_stix_relationship(
-                id=id,
+                id=id_,
                 stixObjectOrStixRelationshipId=stix_object_or_stix_relationship_id,
             ):
                 return True
             self.opencti.log(
                 "info",
-                "Adding StixObjectOrStixRelationship {"
-                + stix_object_or_stix_relationship_id
-                + "} to Opinion {"
-                + id
-                + "}",
+                f"Adding StixObjectOrStixRelationship {{{stix_object_or_stix_relationship_id}}} to Opinion {{{id_}}}",
             )
             query = """
                mutation OpinionEdit($id: ID!, $input: StixMetaRelationshipAddInput) {
@@ -477,7 +468,7 @@ class Opinion:
             self.opencti.query(
                 query,
                 {
-                    "id": id,
+                    "id": id_,
                     "input": {
                         "toId": stix_object_or_stix_relationship_id,
                         "relationship_type": "object",
@@ -485,34 +476,28 @@ class Opinion:
                 },
             )
             return True
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_opinion] Missing parameters: id and stix_object_or_stix_relationship_id",
-            )
-            return False
+        self.opencti.log(
+            "error",
+            "[opencti_opinion] Missing parameters: id and stix_object_or_stix_relationship_id",
+        )
+        return False
 
-    """
+    def remove_stix_object_or_stix_relationship(self, **kwargs):
+        """
         Remove a Stix-Entity object from Opinion object (object_refs)
 
         :param id: the id of the Opinion
         :param entity_id: the id of the Stix-Entity
         :return Boolean
-    """
-
-    def remove_stix_object_or_stix_relationship(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         stix_object_or_stix_relationship_id = kwargs.get(
             "stixObjectOrStixRelationshipId", None
         )
-        if id is not None and stix_object_or_stix_relationship_id is not None:
+        if id_ is not None and stix_object_or_stix_relationship_id is not None:
             self.opencti.log(
                 "info",
-                "Removing StixObjectOrStixRelationship {"
-                + stix_object_or_stix_relationship_id
-                + "} to Opinion {"
-                + id
-                + "}",
+                f"Removing StixObjectOrStixRelationship {{{stix_object_or_stix_relationship_id}}} to Opinion {{{id_}}}",
             )
             query = """
                mutation OpinionEditRelationDelete($id: ID!, $toId: String!, $relationship_type: String!) {
@@ -526,26 +511,24 @@ class Opinion:
             self.opencti.query(
                 query,
                 {
-                    "id": id,
+                    "id": id_,
                     "toId": stix_object_or_stix_relationship_id,
                     "relationship_type": "object",
                 },
             )
             return True
-        else:
-            self.opencti.log(
-                "error", "[opencti_opinion] Missing parameters: id and entity_id"
-            )
-            return False
+        self.opencti.log(
+            "error", "[opencti_opinion] Missing parameters: id and entity_id"
+        )
+        return False
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import a Opinion object from a STIX2 object
 
         :param stixObject: the Stix-Object Opinion
         :return Opinion object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
         extras = kwargs.get("extras", {})
         update = kwargs.get("update", False)
@@ -586,7 +569,7 @@ class Opinion:
                 opinion=stix_object["opinion"] if "opinion" in stix_object else None,
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_attack_pattern] Missing parameters: stixObject"
-            )
+        self.opencti.log(
+            "error", "[opencti_attack_pattern] Missing parameters: stixObject"
+        )
+        return None

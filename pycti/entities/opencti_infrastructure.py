@@ -1,148 +1,154 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class Infrastructure:
     """Main Infrastructure class for OpenCTI
 
     :param opencti: instance of :py:class:`~pycti.api.opencti_api_client.OpenCTIApiClient`
     """
 
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            name
-            description
-            infrastructure_types
-            first_seen
-            last_seen
-            killChainPhases {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        kill_chain_name
-                        phase_name
-                        x_opencti_order
-                        created
-                        modified
+        }
+        revoked
+        confidence
+        created
+        modified
+        name
+        description
+        infrastructure_types
+        first_seen
+        last_seen
+        killChainPhases {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    kill_chain_name
+                    phase_name
+                    x_opencti_order
+                    created
+                    modified
+                }
+            }
+        }
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
-                    }
-                }
-            }
-        """
+        }
+    """
 
     def list(self, **kwargs):
         """List Infrastructure objects
@@ -174,7 +180,7 @@ class Infrastructure:
             first = 500
 
         self.opencti.log(
-            "info", "Listing Infrastructures with filters " + json.dumps(filters) + "."
+            "info", f"Listing Infrastructures with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -216,7 +222,7 @@ class Infrastructure:
             final_data = final_data + data
             while result["data"]["infrastructures"]["pageInfo"]["hasNextPage"]:
                 after = result["data"]["infrastructures"]["pageInfo"]["endCursor"]
-                self.opencti.log("info", "Listing Infrastructures after " + after)
+                self.opencti.log("info", f"Listing Infrastructures after {after}")
                 result = self.opencti.query(
                     query,
                     {
@@ -231,10 +237,9 @@ class Infrastructure:
                 data = self.opencti.process_multiple(result["data"]["infrastructures"])
                 final_data = final_data + data
             return final_data
-        else:
-            return self.opencti.process_multiple(
-                result["data"]["infrastructures"], with_pagination
-            )
+        return self.opencti.process_multiple(
+            result["data"]["infrastructures"], with_pagination
+        )
 
     def read(self, **kwargs):
         """Read an Infrastructure object
@@ -250,11 +255,11 @@ class Infrastructure:
         :param list filters: the filters to apply if no id provided
         """
 
-        id = kwargs.get("id", None)
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Infrastructure {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Infrastructure {{{id_}}}.")
             query = (
                 """
                 query Infrastructure($id: String!) {
@@ -270,30 +275,27 @@ class Infrastructure:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(
                 result["data"]["infrastructure"]
             )
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters, customAttributes=custom_attributes)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_infrastructure] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log(
+            "error", "[opencti_infrastructure] Missing parameters: id or filters"
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Infrastructure object
 
         :param name: the name of the Infrastructure
         :return Infrastructure object
-    """
-
-    def create(self, **kwargs):
+        """
         stix_id = kwargs.get("stix_id", None)
         created_by = kwargs.get("createdBy", None)
         object_marking = kwargs.get("objectMarking", None)
@@ -315,7 +317,7 @@ class Infrastructure:
         update = kwargs.get("update", False)
 
         if name is not None:
-            self.opencti.log("info", "Creating Infrastructure {" + name + "}.")
+            self.opencti.log("info", f"Creating Infrastructure {{{name}}}.")
             query = """
                 mutation InfrastructureAdd($input: InfrastructureAddInput) {
                     infrastructureAdd(input: $input) {
@@ -355,20 +357,19 @@ class Infrastructure:
             return self.opencti.process_multiple_fields(
                 result["data"]["infrastructureAdd"]
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_infrastructure] Missing parameters: name and infrastructure_pattern and main_observable_type",
-            )
+        self.opencti.log(
+            "error",
+            "[opencti_infrastructure] Missing parameters: name and infrastructure_pattern and main_observable_type",
+        )
+        return None
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import an Infrastructure object from a STIX2 object
 
         :param stixObject: the Stix-Object Infrastructure
         :return Infrastructure object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
         extras = kwargs.get("extras", {})
         update = kwargs.get("update", False)
@@ -418,7 +419,7 @@ class Infrastructure:
                 else None,
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_attack_pattern] Missing parameters: stixObject"
-            )
+        self.opencti.log(
+            "error", "[opencti_attack_pattern] Missing parameters: stixObject"
+        )
+        return None

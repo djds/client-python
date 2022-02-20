@@ -1,41 +1,49 @@
 # coding: utf-8
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class StixCyberObservableRelationship:
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            standard_id
-            relationship_type
-            start_time
-            stop_time
-            from {
-                ... on StixCyberObservable {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    observable_value
-                }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        standard_id
+        relationship_type
+        start_time
+        stop_time
+        from {
+            ... on StixCyberObservable {
+                id
+                standard_id
+                entity_type
+                parent_types
+                observable_value
             }
-            to {
-                ... on StixCyberObservable {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    observable_value
-                }
+        }
+        to {
+            ... on StixCyberObservable {
+                id
+                standard_id
+                entity_type
+                parent_types
+                observable_value
             }
-        """
-
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List stix_observable_relationship objects
 
         :param fromId: the id of the source entity of the relation
@@ -48,9 +56,7 @@ class StixCyberObservableRelationship:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of stix_observable_relationship objects
-    """
-
-    def list(self, **kwargs):
+        """
         element_id = kwargs.get("elementId", None)
         from_id = kwargs.get("fromId", None)
         from_types = kwargs.get("fromTypes", None)
@@ -74,13 +80,7 @@ class StixCyberObservableRelationship:
 
         self.opencti.log(
             "info",
-            "Listing stix_observable_relationships with {type: "
-            + str(relationship_type)
-            + ", from_id: "
-            + str(from_id)
-            + ", to_id: "
-            + str(to_id)
-            + "}",
+            f"Listing stix_observable_relationships with {{type: {str(relationship_type)}, from_id: {str(from_id)}, to_id: {str(to_id)}}}",
         )
         query = (
             """
@@ -129,7 +129,8 @@ class StixCyberObservableRelationship:
             result["data"]["stixCyberObservableRelationships"], with_pagination
         )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a stix_observable_relationship object
 
         :param id: the id of the stix_observable_relationship
@@ -142,10 +143,8 @@ class StixCyberObservableRelationship:
         :param stopTimeStart: the last_seen date start filter
         :param stopTimeStop: the last_seen date stop filter
         :return stix_observable_relationship object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         element_id = kwargs.get("elementId", None)
         from_id = kwargs.get("fromId", None)
         to_id = kwargs.get("toId", None)
@@ -155,10 +154,8 @@ class StixCyberObservableRelationship:
         stop_time_start = kwargs.get("stopTimeStart", None)
         stop_time_stop = kwargs.get("stopTimeStop", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log(
-                "info", "Reading stix_observable_relationship {" + id + "}."
-            )
+        if id_ is not None:
+            self.opencti.log("info", f"Reading stix_observable_relationship {{{id}}}.")
             query = (
                 """
                 query StixCyberObservableRelationship($id: String!) {
@@ -174,34 +171,31 @@ class StixCyberObservableRelationship:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(
                 result["data"]["stixCyberObservableRelationship"]
             )
-        else:
-            result = self.list(
-                elementId=element_id,
-                fromId=from_id,
-                toId=to_id,
-                relationship_type=relationship_type,
-                startTimeStart=start_time_start,
-                startTimeStop=start_time_stop,
-                stopTimeStart=stop_time_start,
-                stopTimeStop=stop_time_stop,
-            )
-            if len(result) > 0:
-                return result[0]
-            else:
-                return None
+        result = self.list(
+            elementId=element_id,
+            fromId=from_id,
+            toId=to_id,
+            relationship_type=relationship_type,
+            startTimeStart=start_time_start,
+            startTimeStop=start_time_stop,
+            stopTimeStart=stop_time_start,
+            stopTimeStop=stop_time_stop,
+        )
+        if len(result) > 0:
+            return result[0]
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a stix_observable_relationship object
 
         :param from_id: id of the source entity
         :return stix_observable_relationship object
-    """
-
-    def create(self, **kwargs):
+        """
         from_id = kwargs.get("fromId", None)
         to_id = kwargs.get("toId", None)
         relationship_type = kwargs.get("relationship_type", None)
@@ -216,7 +210,7 @@ class StixCyberObservableRelationship:
         update = kwargs.get("update", False)
         self.opencti.log(
             "info",
-            "Creating stix_observable_relationship {" + from_id + ", " + to_id + "}.",
+            f"Creating stix_observable_relationship {{{from_id}, {to_id}}}.",
         )
         query = """
                 mutation StixCyberObservableRelationshipAdd($input: StixCyberObservableRelationshipAddInput!) {
@@ -251,21 +245,20 @@ class StixCyberObservableRelationship:
             result["data"]["stixCyberObservableRelationshipAdd"]
         )
 
-    """
+    def update_field(self, **kwargs):
+        """
         Update a stix_observable_relationship object field
 
         :param id: the stix_observable_relationship id
         :param input: the input of the field
         :return The updated stix_observable_relationship object
-    """
-
-    def update_field(self, **kwargs):
-        id = kwargs.get("id", None)
-        input = kwargs.get("input", None)
-        if id is not None and input is not None:
+        """
+        id_ = kwargs.get("id", None)
+        input_ = kwargs.get("input", None)
+        if id_ is not None and input_ is not None:
             self.opencti.log(
                 "info",
-                "Updating stix_observable_relationship {" + id + "}.",
+                f"Updating stix_observable_relationship {{{id}}}.",
             )
             query = (
                 """
@@ -280,10 +273,9 @@ class StixCyberObservableRelationship:
                 }
             """
             )
-            result = self.opencti.query(query, {"id": id, "input": input})
+            result = self.opencti.query(query, {"id": id_, "input": input_})
             return self.opencti.process_multiple_fields(
                 result["data"]["stixCyberObservableRelationshipEdit"]["fieldPatch"]
             )
-        else:
-            self.opencti.log("error", "Missing parameters: id and key and value")
-            return None
+        self.opencti.log("error", "Missing parameters: id and key and value")
+        return None

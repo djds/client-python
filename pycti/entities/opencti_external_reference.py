@@ -1,54 +1,59 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
 import os
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import magic
 
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import File, OpenCTIApiClient
 
+
+@dataclass
 class ExternalReference:
-    def __init__(self, opencti, file):
-        self.opencti = opencti
-        self.file = file
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            created_at
-            updated_at
-            created
-            modified
-            source_name
-            description
-            url
-            hash
-            external_id
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
+    opencti: OpenCTIApiClient
+    file: "File"
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        created_at
+        updated_at
+        created
+        modified
+        source_name
+        description
+        url
+        hash
+        external_id
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-        """
-
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List External-Reference objects
 
         :param filters: the filters to apply
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of External-Reference objects
-    """
-
-    def list(self, **kwargs):
+        """
         filters = kwargs.get("filters", None)
         first = kwargs.get("first", 500)
         after = kwargs.get("after", None)
@@ -62,7 +67,7 @@ class ExternalReference:
 
         self.opencti.log(
             "info",
-            "Listing External-Reference with filters " + json.dumps(filters) + ".",
+            f"Listing External-Reference with filters {json.dumps(filters)}.",
         )
         query = (
             """
@@ -100,19 +105,18 @@ class ExternalReference:
             result["data"]["externalReferences"], with_pagination
         )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a External-Reference object
 
         :param id: the id of the External-Reference
         :param filters: the filters to apply if no id provided
         :return External-Reference object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
-        if id is not None:
-            self.opencti.log("info", "Reading External-Reference {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading External-Reference {{{id_}}}.")
             query = (
                 """
                 query ExternalReference($id: String!) {
@@ -124,31 +128,28 @@ class ExternalReference:
                 }
             """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(
                 result["data"]["externalReference"]
             )
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_external_reference] Missing parameters: id or filters",
-            )
             return None
+        self.opencti.log(
+            "error",
+            "[opencti_external_reference] Missing parameters: id or filters",
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a External Reference object
 
         :param source_name: the source_name of the External Reference
         :return External Reference object
-    """
-
-    def create(self, **kwargs):
+        """
         stix_id = kwargs.get("stix_id", None)
         created = kwargs.get("created", None)
         modified = kwargs.get("modified", None)
@@ -160,9 +161,7 @@ class ExternalReference:
         update = kwargs.get("update", False)
 
         if source_name is not None and url is not None:
-            self.opencti.log(
-                "info", "Creating External Reference {" + source_name + "}."
-            )
+            self.opencti.log("info", f"Creating External Reference {{{source_name}}}.")
             query = (
                 """
                 mutation ExternalReferenceAdd($input: ExternalReferenceAddInput) {
@@ -193,27 +192,26 @@ class ExternalReference:
             return self.opencti.process_multiple_fields(
                 result["data"]["externalReferenceAdd"]
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_external_reference] Missing parameters: source_name and url",
-            )
+        self.opencti.log(
+            "error",
+            "[opencti_external_reference] Missing parameters: source_name and url",
+        )
+        return None
 
-    """
+    def add_file(self, **kwargs):
+        """
         Upload a file in this External-Reference
 
         :param id: the Stix-Domain-Object id
         :param file_name
         :param data
         :return void
-    """
-
-    def add_file(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         file_name = kwargs.get("file_name", None)
         data = kwargs.get("data", None)
         mime_type = kwargs.get("mime_type", "text/plain")
-        if id is not None and file_name is not None:
+        if id_ is not None and file_name is not None:
             final_file_name = os.path.basename(file_name)
             query = """
                 mutation ExternalReferenceEdit($id: ID!, $file: Upload!) {
@@ -226,6 +224,7 @@ class ExternalReference:
                 }
              """
             if data is None:
+                # pylint: disable-next=consider-using-with
                 data = open(file_name, "rb")
                 if file_name.endswith(".json"):
                     mime_type = "application/json"
@@ -233,36 +232,30 @@ class ExternalReference:
                     mime_type = magic.from_file(file_name, mime=True)
             self.opencti.log(
                 "info",
-                "Uploading a file {"
-                + final_file_name
-                + "} in Stix-Domain-Object {"
-                + id
-                + "}.",
+                f"Uploading a file {{{final_file_name}}} in Stix-Domain-Object {{{id_}}}.",
             )
             return self.opencti.query(
                 query,
-                {"id": id, "file": (self.file(final_file_name, data, mime_type))},
+                {"id": id_, "file": (self.file(final_file_name, data, mime_type))},
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_stix_domain_object] Missing parameters: id or file_name",
-            )
-            return None
+        self.opencti.log(
+            "error",
+            "[opencti_stix_domain_object] Missing parameters: id or file_name",
+        )
+        return None
 
-    """
+    def update_field(self, **kwargs):
+        """
         Update a External Reference object field
 
         :param id: the External Reference id
         :param input: the input of the field
         :return The updated External Reference object
-    """
-
-    def update_field(self, **kwargs):
-        id = kwargs.get("id", None)
-        input = kwargs.get("input", None)
-        if id is not None and input is not None:
-            self.opencti.log("info", "Updating External-Reference {" + id + "}.")
+        """
+        id_ = kwargs.get("id", None)
+        input_ = kwargs.get("input", None)
+        if id_ is not None and input_ is not None:
+            self.opencti.log("info", f"Updating External-Reference {{{id_}}}.")
             query = """
                     mutation ExternalReferenceEdit($id: ID!, $input: [EditInput]!) {
                         externalReferenceEdit(id: $id) {
@@ -272,19 +265,19 @@ class ExternalReference:
                         }
                     }
                 """
-            result = self.opencti.query(query, {"id": id, "input": input})
+            result = self.opencti.query(query, {"id": id_, "input": input_})
             return self.opencti.process_multiple_fields(
                 result["data"]["externalReferenceEdit"]["fieldPatch"]
             )
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_external_reference] Missing parameters: id and key and value",
-            )
-            return None
+        self.opencti.log(
+            "error",
+            "[opencti_external_reference] Missing parameters: id and key and value",
+        )
+        return None
 
-    def delete(self, id):
-        self.opencti.log("info", "Deleting External-Reference " + id + "...")
+    # pylint: disable-next=redefined-builtin
+    def delete(self, id):  # TODO: rename `id`
+        self.opencti.log("info", f"Deleting External-Reference {id}...")
         query = """
              mutation ExternalReferenceEdit($id: ID!) {
                  externalReferenceEdit(id: $id) {
@@ -295,10 +288,10 @@ class ExternalReference:
         self.opencti.query(query, {"id": id})
 
     def list_files(self, **kwargs):
-        id = kwargs.get("id", None)
+        id_ = kwargs.get("id", None)
         self.opencti.log(
             "info",
-            "Listing files of External-Reference { " + id + " }",
+            f"Listing files of External-Reference {{ {id_} }}",
         )
         query = """
             query externalReference($id: String!) {
@@ -319,7 +312,7 @@ class ExternalReference:
                 }
             }
         """
-        result = self.opencti.query(query, {"id": id})
+        result = self.opencti.query(query, {"id": id_})
         entity = self.opencti.process_multiple_fields(
             result["data"]["externalReference"]
         )

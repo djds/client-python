@@ -1,132 +1,139 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Dict
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class Incident:
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            name
-            description
-            aliases
-            first_seen
-            last_seen
-            objective
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
+        }
+        revoked
+        confidence
+        created
+        modified
+        name
+        description
+        aliases
+        first_seen
+        last_seen
+        objective
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-        """
-
+        }
     """
+
+    def list(self, **kwargs):
+        """
         List Incident objects
 
         :param filters: the filters to apply
@@ -134,9 +141,7 @@ class Incident:
         :param first: return the first n rows from the after ID (or the beginning if not set)
         :param after: ID of the first row for pagination
         :return List of Incident objects
-    """
-
-    def list(self, **kwargs):
+        """
         filters = kwargs.get("filters", None)
         search = kwargs.get("search", None)
         first = kwargs.get("first", 500)
@@ -150,7 +155,7 @@ class Incident:
             first = 500
 
         self.opencti.log(
-            "info", "Listing Incidents with filters " + json.dumps(filters) + "."
+            "info", f"Listing Incidents with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -189,20 +194,19 @@ class Incident:
             result["data"]["incidents"], with_pagination
         )
 
-    """
+    def read(self, **kwargs):
+        """
         Read a Incident object
 
         :param id: the id of the Incident
         :param filters: the filters to apply if no id provided
         :return Incident object
-    """
-
-    def read(self, **kwargs):
-        id = kwargs.get("id", None)
+        """
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Incident {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Incident {{{id_}}}.")
             query = (
                 """
                 query Incident($id: String!) {
@@ -218,28 +222,25 @@ class Incident:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["incident"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_incident] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log(
+            "error", "[opencti_incident] Missing parameters: id or filters"
+        )
+        return None
 
-    """
+    def create(self, **kwargs):
+        """
         Create a Incident object
 
         :param name: the name of the Incident
         :return Incident object
-    """
-
-    def create(self, **kwargs):
+        """
         stix_id = kwargs.get("stix_id", None)
         created_by = kwargs.get("createdBy", None)
         object_marking = kwargs.get("objectMarking", None)
@@ -260,7 +261,7 @@ class Incident:
         update = kwargs.get("update", False)
 
         if name is not None and description is not None:
-            self.opencti.log("info", "Creating Incident {" + name + "}.")
+            self.opencti.log("info", f"Creating Incident {{{name}}}.")
             query = """
                 mutation IncidentAdd($input: IncidentAddInput) {
                     incidentAdd(input: $input) {
@@ -297,20 +298,19 @@ class Incident:
                 },
             )
             return self.opencti.process_multiple_fields(result["data"]["incidentAdd"])
-        else:
-            self.opencti.log("error", "Missing parameters: name and description")
+        self.opencti.log("error", "Missing parameters: name and description")
+        return None
 
-    """
+    def import_from_stix2(self, **kwargs):
+        """
         Import a Incident object from a STIX2 object
 
         :param stixObject: the Stix-Object Incident
         :return Incident object
-    """
-
-    def import_from_stix2(self, **kwargs):
+        """
         stix_object = kwargs.get("stixObject", None)
-        extras = kwargs.get("extras", {})
-        update = kwargs.get("update", False)
+        extras: Dict = kwargs.get("extras", {})
+        update: bool = kwargs.get("update", False)
         if stix_object is not None:
             return self.create(
                 stix_id=stix_object["id"],
@@ -354,7 +354,5 @@ class Incident:
                 else None,
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_incident] Missing parameters: stixObject"
-            )
+        self.opencti.log("error", "[opencti_incident] Missing parameters: stixObject")
+        return None

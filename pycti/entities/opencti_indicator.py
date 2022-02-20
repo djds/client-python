@@ -1,163 +1,169 @@
 # coding: utf-8
+from __future__ import annotations
 
 import json
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..api.opencti_api_client import OpenCTIApiClient
 
 
+@dataclass
 class Indicator:
     """Main Indicator class for OpenCTI
 
     :param opencti: instance of :py:class:`~pycti.api.opencti_api_client.OpenCTIApiClient`
     """
 
-    def __init__(self, opencti):
-        self.opencti = opencti
-        self.properties = """
-            id
-            standard_id
-            entity_type
-            parent_types
-            spec_version
-            created_at
-            updated_at
-            createdBy {
-                ... on Identity {
-                    id
-                    standard_id
-                    entity_type
-                    parent_types
-                    spec_version
-                    identity_class
-                    name
-                    description
-                    roles
-                    contact_information
-                    x_opencti_aliases
-                    created
-                    modified
-                    objectLabel {
-                        edges {
-                            node {
-                                id
-                                value
-                                color
-                            }
+    opencti: OpenCTIApiClient
+    properties: str = """
+        id
+        standard_id
+        entity_type
+        parent_types
+        spec_version
+        created_at
+        updated_at
+        createdBy {
+            ... on Identity {
+                id
+                standard_id
+                entity_type
+                parent_types
+                spec_version
+                identity_class
+                name
+                description
+                roles
+                contact_information
+                x_opencti_aliases
+                created
+                modified
+                objectLabel {
+                    edges {
+                        node {
+                            id
+                            value
+                            color
                         }
                     }
                 }
-                ... on Organization {
-                    x_opencti_organization_type
-                    x_opencti_reliability
-                }
-                ... on Individual {
-                    x_opencti_firstname
-                    x_opencti_lastname
+            }
+            ... on Organization {
+                x_opencti_organization_type
+                x_opencti_reliability
+            }
+            ... on Individual {
+                x_opencti_firstname
+                x_opencti_lastname
+            }
+        }
+        objectMarking {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    definition_type
+                    definition
+                    created
+                    modified
+                    x_opencti_order
+                    x_opencti_color
                 }
             }
-            objectMarking {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        definition_type
-                        definition
-                        created
-                        modified
-                        x_opencti_order
-                        x_opencti_color
-                    }
+        }
+        objectLabel {
+            edges {
+                node {
+                    id
+                    value
+                    color
                 }
             }
-            objectLabel {
-                edges {
-                    node {
-                        id
-                        value
-                        color
-                    }
-                }
-            }
-            externalReferences {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        source_name
-                        description
-                        url
-                        hash
-                        external_id
-                        created
-                        modified
-                        importFiles {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    size
-                                    metaData {
-                                        mimetype
-                                        version
-                                    }
+        }
+        externalReferences {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    source_name
+                    description
+                    url
+                    hash
+                    external_id
+                    created
+                    modified
+                    importFiles {
+                        edges {
+                            node {
+                                id
+                                name
+                                size
+                                metaData {
+                                    mimetype
+                                    version
                                 }
                             }
                         }
                     }
                 }
             }
-            revoked
-            confidence
-            created
-            modified
-            pattern_type
-            pattern_version
-            pattern
-            name
-            description
-            indicator_types
-            valid_from
-            valid_until
-            x_opencti_score
-            x_opencti_detection
-            x_opencti_main_observable_type
-            x_mitre_platforms
-            observables {
-                edges {
-                    node {
-                        id
-                        observable_value
+        }
+        revoked
+        confidence
+        created
+        modified
+        pattern_type
+        pattern_version
+        pattern
+        name
+        description
+        indicator_types
+        valid_from
+        valid_until
+        x_opencti_score
+        x_opencti_detection
+        x_opencti_main_observable_type
+        x_mitre_platforms
+        observables {
+            edges {
+                node {
+                    id
+                    observable_value
+                }
+            }
+        }
+        killChainPhases {
+            edges {
+                node {
+                    id
+                    standard_id
+                    entity_type
+                    kill_chain_name
+                    phase_name
+                    x_opencti_order
+                    created
+                    modified
+                }
+            }
+        }
+        importFiles {
+            edges {
+                node {
+                    id
+                    name
+                    size
+                    metaData {
+                        mimetype
+                        version
                     }
                 }
             }
-            killChainPhases {
-                edges {
-                    node {
-                        id
-                        standard_id
-                        entity_type
-                        kill_chain_name
-                        phase_name
-                        x_opencti_order
-                        created
-                        modified
-                    }
-                }
-            }
-            importFiles {
-                edges {
-                    node {
-                        id
-                        name
-                        size
-                        metaData {
-                            mimetype
-                            version
-                        }
-                    }
-                }
-            }
-        """
+        }
+    """
 
     def list(self, **kwargs):
         """List Indicator objects
@@ -192,7 +198,7 @@ class Indicator:
             first = 100
 
         self.opencti.log(
-            "info", "Listing Indicators with filters " + json.dumps(filters) + "."
+            "info", f"Listing Indicators with filters {json.dumps(filters)}."
         )
         query = (
             """
@@ -233,7 +239,7 @@ class Indicator:
             final_data = final_data + data
             while result["data"]["indicators"]["pageInfo"]["hasNextPage"]:
                 after = result["data"]["indicators"]["pageInfo"]["endCursor"]
-                self.opencti.log("info", "Listing Indicators after " + after)
+                self.opencti.log("info", f"Listing Indicators after {after}")
                 result = self.opencti.query(
                     query,
                     {
@@ -248,10 +254,9 @@ class Indicator:
                 data = self.opencti.process_multiple(result["data"]["indicators"])
                 final_data = final_data + data
             return final_data
-        else:
-            return self.opencti.process_multiple(
-                result["data"]["indicators"], with_pagination
-            )
+        return self.opencti.process_multiple(
+            result["data"]["indicators"], with_pagination
+        )
 
     def read(self, **kwargs):
         """Read an Indicator object
@@ -270,11 +275,11 @@ class Indicator:
         :rtype: Indicator
         """
 
-        id = kwargs.get("id", None)
+        id_ = kwargs.get("id", None)
         filters = kwargs.get("filters", None)
         custom_attributes = kwargs.get("customAttributes", None)
-        if id is not None:
-            self.opencti.log("info", "Reading Indicator {" + id + "}.")
+        if id_ is not None:
+            self.opencti.log("info", f"Reading Indicator {{{id_}}}.")
             query = (
                 """
                 query Indicator($id: String!) {
@@ -290,19 +295,17 @@ class Indicator:
                 }
              """
             )
-            result = self.opencti.query(query, {"id": id})
+            result = self.opencti.query(query, {"id": id_})
             return self.opencti.process_multiple_fields(result["data"]["indicator"])
-        elif filters is not None:
+        if filters is not None:
             result = self.list(filters=filters, customAttributes=custom_attributes)
             if len(result) > 0:
                 return result[0]
-            else:
-                return None
-        else:
-            self.opencti.log(
-                "error", "[opencti_indicator] Missing parameters: id or filters"
-            )
             return None
+        self.opencti.log(
+            "error", "[opencti_indicator] Missing parameters: id or filters"
+        )
+        return None
 
     def create(self, **kwargs):
         """
@@ -343,14 +346,10 @@ class Indicator:
         x_opencti_stix_ids = kwargs.get("x_opencti_stix_ids", None)
         update = kwargs.get("update", False)
 
-        if (
-            name is not None
-            and pattern is not None
-            and x_opencti_main_observable_type is not None
-        ):
+        if None not in (name, pattern, x_opencti_main_observable_type):
             if x_opencti_main_observable_type == "File":
                 x_opencti_main_observable_type = "StixFile"
-            self.opencti.log("info", "Creating Indicator {" + name + "}.")
+            self.opencti.log("info", f"Creating Indicator {{{name}}}.")
             query = """
                 mutation IndicatorAdd($input: IndicatorAddInput) {
                     indicatorAdd(input: $input) {
@@ -405,11 +404,11 @@ class Indicator:
                 },
             )
             return self.opencti.process_multiple_fields(result["data"]["indicatorAdd"])
-        else:
-            self.opencti.log(
-                "error",
-                "[opencti_indicator] Missing parameters: name or pattern or x_opencti_main_observable_type",
-            )
+        self.opencti.log(
+            "error",
+            "[opencti_indicator] Missing parameters: name or pattern or x_opencti_main_observable_type",
+        )
+        return None
 
     def add_stix_cyber_observable(self, **kwargs):
         """
@@ -421,12 +420,12 @@ class Indicator:
 
         :return: Boolean True if there has been no import error
         """
-        id = kwargs.get("id", None)
+        id_ = kwargs.get("id", None)
         indicator = kwargs.get("indicator", None)
         stix_cyber_observable_id = kwargs.get("stix_cyber_observable_id", None)
-        if id is not None and stix_cyber_observable_id is not None:
+        if id_ is not None and stix_cyber_observable_id is not None:
             if indicator is None:
-                indicator = self.read(id=id)
+                indicator = self.read(id=id_)
             if indicator is None:
                 self.opencti.log(
                     "error",
@@ -435,40 +434,34 @@ class Indicator:
                 return False
             if stix_cyber_observable_id in indicator["observablesIds"]:
                 return True
-            else:
-                self.opencti.log(
-                    "info",
-                    "Adding Stix-Observable {"
-                    + stix_cyber_observable_id
-                    + "} to Indicator {"
-                    + id
-                    + "}",
-                )
-                query = """
-                    mutation StixCoreRelationshipAdd($input: StixCoreRelationshipAddInput!) {
-                        stixCoreRelationshipAdd(input: $input) {
-                            id
-                        }
-                    }
-                """
-                self.opencti.query(
-                    query,
-                    {
-                        "id": id,
-                        "input": {
-                            "fromId": id,
-                            "toId": stix_cyber_observable_id,
-                            "relationship_type": "based-on",
-                        },
-                    },
-                )
-                return True
-        else:
             self.opencti.log(
-                "error",
-                "[opencti_indicator] Missing parameters: id and stix cyber_observable_id",
+                "info",
+                f"Adding Stix-Observable {{{stix_cyber_observable_id}}} to Indicator {{{id_}}}",
             )
-            return False
+            query = """
+                mutation StixCoreRelationshipAdd($input: StixCoreRelationshipAddInput!) {
+                    stixCoreRelationshipAdd(input: $input) {
+                        id
+                    }
+                }
+            """
+            self.opencti.query(
+                query,
+                {
+                    "id": id,
+                    "input": {
+                        "fromId": id,
+                        "toId": stix_cyber_observable_id,
+                        "relationship_type": "based-on",
+                    },
+                },
+            )
+            return True
+        self.opencti.log(
+            "error",
+            "[opencti_indicator] Missing parameters: id and stix cyber_observable_id",
+        )
+        return False
 
     def import_from_stix2(self, **kwargs):
         """
@@ -549,7 +542,7 @@ class Indicator:
                 else None,
                 update=update,
             )
-        else:
-            self.opencti.log(
-                "error", "[opencti_attack_pattern] Missing parameters: stixObject"
-            )
+        self.opencti.log(
+            "error", "[opencti_attack_pattern] Missing parameters: stixObject"
+        )
+        return None
