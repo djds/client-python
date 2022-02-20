@@ -11,11 +11,11 @@ import datefinder
 import dateutil.parser
 import pytz
 
-from pycti.entities.opencti_identity import Identity
-from pycti.utils.constants import IdentityTypes, LocationTypes, StixCyberObservableTypes
-from pycti.utils.opencti_stix2_splitter import OpenCTIStix2Splitter
-from pycti.utils.opencti_stix2_update import OpenCTIStix2Update
-from pycti.utils.opencti_stix2_utils import OBSERVABLES_VALUE_INT
+from ..entities.opencti_identity import Identity
+from ..utils.constants import IdentityTypes, LocationTypes, StixCyberObservableTypes
+from ..utils.opencti_stix2_splitter import OpenCTIStix2Splitter
+from ..utils.opencti_stix2_update import OpenCTIStix2Update
+from ..utils.opencti_stix2_utils import OBSERVABLES_VALUE_INT
 
 datefinder.ValueError = ValueError, OverflowError
 utc = pytz.UTC
@@ -43,7 +43,8 @@ class OpenCTIStix2:
             'Unknown object type "' + stix_object["type"] + '", doing nothing...',
         )
 
-    def convert_markdown(self, text: str) -> str:
+    @staticmethod
+    def convert_markdown(text: str) -> str:
         """converts input text to markdown style code annotation
 
         :param text: input text
@@ -70,7 +71,9 @@ class OpenCTIStix2:
             try:
                 date_value = dateutil.parser.parse(date)
             except (dateutil.parser.ParserError, TypeError, OverflowError) as e:
-                raise ValueError(f"{e}: {date} does not contain a valid date string")
+                raise ValueError(
+                    f"{e}: {date} does not contain a valid date string"
+                ) from e
         else:
             date_value = datetime.datetime.utcnow()
 
@@ -80,7 +83,8 @@ class OpenCTIStix2:
 
         return date_value.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
-    def filter_objects(self, uuids: List, objects: List) -> List:
+    @staticmethod
+    def filter_objects(uuids: List, objects: List) -> List:
         """filters objects based on UUIDs
 
         :param uuids: list of UUIDs
@@ -91,14 +95,14 @@ class OpenCTIStix2:
         :rtype: list
         """
 
-        result = []
-        if objects is not None:
-            for item in objects:
-                if "id" in item and item["id"] not in uuids:
-                    result.append(item)
-        return result
+        return (
+            [item for item in objects if "id" in item and item["id"] not in uuids]
+            if objects is not None
+            else []
+        )
 
-    def pick_aliases(self, stix_object: Dict) -> Optional[List]:
+    @staticmethod
+    def pick_aliases(stix_object: Dict) -> Optional[List]:
         """check stix2 object for multiple aliases and return a list
 
         :param stix_object: valid stix2 object
@@ -110,16 +114,17 @@ class OpenCTIStix2:
         # Add aliases
         if "x_opencti_aliases" in stix_object:
             return stix_object["x_opencti_aliases"]
-        elif "x_mitre_aliases" in stix_object:
+        if "x_mitre_aliases" in stix_object:
             return stix_object["x_mitre_aliases"]
-        elif "x_amitt_aliases" in stix_object:
+        if "x_amitt_aliases" in stix_object:
             return stix_object["x_amitt_aliases"]
-        elif "aliases" in stix_object:
+        if "aliases" in stix_object:
             return stix_object["aliases"]
         return None
 
+    @staticmethod
     def check_max_marking_definition(
-        self, max_marking_definition_entity: Dict, entity_marking_definitions: List
+        max_marking_definition_entity: Dict, entity_marking_definitions: List
     ) -> bool:
         """checks if a list of marking definitions conforms with a given max level
 
