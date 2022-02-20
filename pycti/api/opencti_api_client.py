@@ -398,7 +398,8 @@ class OpenCTIApiClient:
         result = self.query(query)
         return result["data"]["logsWorkerConfig"]
 
-    def not_empty(self, value):
+    @staticmethod
+    def not_empty(value):
         """check if a value is empty for str, list and int
 
         :param value: value to check
