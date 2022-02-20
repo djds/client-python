@@ -4,56 +4,57 @@ import datetime
 import io
 import json
 import logging
-from typing import Union
+from dataclasses import dataclass
+from typing import Any, Dict, Optional, Union
 
 import magic
 import requests
 import urllib3
 from pythonjsonlogger import jsonlogger
 
-from pycti.api.opencti_api_connector import OpenCTIApiConnector
-from pycti.api.opencti_api_work import OpenCTIApiWork
-from pycti.entities.opencti_attack_pattern import AttackPattern
-from pycti.entities.opencti_campaign import Campaign
-from pycti.entities.opencti_course_of_action import CourseOfAction
-from pycti.entities.opencti_external_reference import ExternalReference
-from pycti.entities.opencti_identity import Identity
-from pycti.entities.opencti_incident import Incident
-from pycti.entities.opencti_indicator import Indicator
-from pycti.entities.opencti_infrastructure import Infrastructure
-from pycti.entities.opencti_intrusion_set import IntrusionSet
-from pycti.entities.opencti_kill_chain_phase import KillChainPhase
-from pycti.entities.opencti_label import Label
-from pycti.entities.opencti_location import Location
-from pycti.entities.opencti_malware import Malware
-from pycti.entities.opencti_marking_definition import MarkingDefinition
-from pycti.entities.opencti_note import Note
-from pycti.entities.opencti_observed_data import ObservedData
-from pycti.entities.opencti_opinion import Opinion
-from pycti.entities.opencti_report import Report
-from pycti.entities.opencti_stix import Stix
-from pycti.entities.opencti_stix_core_object import StixCoreObject
-from pycti.entities.opencti_stix_core_relationship import StixCoreRelationship
-from pycti.entities.opencti_stix_cyber_observable import StixCyberObservable
-from pycti.entities.opencti_stix_cyber_observable_relationship import (
+from ..api.opencti_api_connector import OpenCTIApiConnector
+from ..api.opencti_api_work import OpenCTIApiWork
+from ..entities.opencti_attack_pattern import AttackPattern
+from ..entities.opencti_campaign import Campaign
+from ..entities.opencti_course_of_action import CourseOfAction
+from ..entities.opencti_external_reference import ExternalReference
+from ..entities.opencti_identity import Identity
+from ..entities.opencti_incident import Incident
+from ..entities.opencti_indicator import Indicator
+from ..entities.opencti_infrastructure import Infrastructure
+from ..entities.opencti_intrusion_set import IntrusionSet
+from ..entities.opencti_kill_chain_phase import KillChainPhase
+from ..entities.opencti_label import Label
+from ..entities.opencti_location import Location
+from ..entities.opencti_malware import Malware
+from ..entities.opencti_marking_definition import MarkingDefinition
+from ..entities.opencti_note import Note
+from ..entities.opencti_observed_data import ObservedData
+from ..entities.opencti_opinion import Opinion
+from ..entities.opencti_report import Report
+from ..entities.opencti_stix import Stix
+from ..entities.opencti_stix_core_object import StixCoreObject
+from ..entities.opencti_stix_core_relationship import StixCoreRelationship
+from ..entities.opencti_stix_cyber_observable import StixCyberObservable
+from ..entities.opencti_stix_cyber_observable_relationship import (
     StixCyberObservableRelationship,
 )
-from pycti.entities.opencti_stix_domain_object import StixDomainObject
-from pycti.entities.opencti_stix_object_or_stix_relationship import (
+from ..entities.opencti_stix_domain_object import StixDomainObject
+from ..entities.opencti_stix_object_or_stix_relationship import (
     StixObjectOrStixRelationship,
 )
-from pycti.entities.opencti_stix_sighting_relationship import StixSightingRelationship
-from pycti.entities.opencti_threat_actor import ThreatActor
-from pycti.entities.opencti_tool import Tool
-from pycti.entities.opencti_vulnerability import Vulnerability
-from pycti.utils.opencti_stix2 import OpenCTIStix2
+from ..entities.opencti_stix_sighting_relationship import StixSightingRelationship
+from ..entities.opencti_threat_actor import ThreatActor
+from ..entities.opencti_tool import Tool
+from ..entities.opencti_vulnerability import Vulnerability
+from ..utils.opencti_stix2 import OpenCTIStix2
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class CustomJsonFormatter(jsonlogger.JsonFormatter):
     def add_fields(self, log_record, record, message_dict):
-        super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
+        super().add_fields(log_record, record, message_dict)
         if not log_record.get("timestamp"):
             # This doesn't use record.created, so it is slightly off
             now = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -64,11 +65,11 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
             log_record["level"] = record.levelname
 
 
+@dataclass
 class File:
-    def __init__(self, name, data, mime="text/plain"):
-        self.name = name
-        self.data = data
-        self.mime = mime
+    name: str
+    data: Any
+    mime: str = "text/plain"
 
 
 class OpenCTIApiClient:
@@ -98,10 +99,10 @@ class OpenCTIApiClient:
         self,
         url,
         token,
-        log_level="info",
-        ssl_verify=False,
+        log_level: str = "info",
+        ssl_verify: bool = False,
         proxies=None,
-        json_logging=False,
+        json_logging: bool = False,
     ):
         """Constructor method"""
 
@@ -117,7 +118,7 @@ class OpenCTIApiClient:
         self.log_level = log_level
         numeric_level = getattr(logging, self.log_level.upper(), None)
         if not isinstance(numeric_level, int):
-            raise ValueError("Invalid log level: " + self.log_level)
+            raise ValueError(f"Invalid log level: {self.log_level}")
 
         if json_logging:
             log_handler = logging.StreamHandler()
@@ -132,8 +133,8 @@ class OpenCTIApiClient:
 
         # Define API
         self.api_token = token
-        self.api_url = url + "/graphql"
-        self.request_headers = {"Authorization": "Bearer " + token}
+        self.api_url = f"{url}/graphql"
+        self.request_headers = {"Authorization": f"Bearer {token}"}
         self.session = requests.session()
 
         # Define the dependencies
@@ -177,7 +178,8 @@ class OpenCTIApiClient:
         # Check if openCTI is available
         if not self.health_check():
             raise ValueError(
-                "OpenCTI API is not reachable. Waiting for OpenCTI API to start or check your configuration..."
+                "OpenCTI API is not reachable"
+                ". Waiting for OpenCTI API to start or check your configuration..."
             )
 
     def set_applicant_id_header(self, applicant_id):
@@ -188,7 +190,7 @@ class OpenCTIApiClient:
             "" if retry_number is None else str(retry_number)
         )
 
-    def query(self, query, variables={}):
+    def query(self, query, variables: Optional[Dict] = None):
         """submit a query to the OpenCTI GraphQL API
 
         :param query: GraphQL query string
@@ -198,6 +200,8 @@ class OpenCTIApiClient:
         :return: returns the response json content
         :rtype: Any
         """
+        if variables is None:
+            variables = {}  # avoid dangerous mutable shared default args
 
         query_var = {}
         files_vars = []
@@ -207,8 +211,8 @@ class OpenCTIApiClient:
         var_keys = variables.keys()
         for key in var_keys:
             val = variables[key]
-            is_file = type(val) is File
-            is_files = (
+            is_file: bool = isinstance(val, File)
+            is_files: bool = (
                 isinstance(val, list)
                 and len(val) > 0
                 and all(map(lambda x: isinstance(x, File), val))
@@ -229,11 +233,11 @@ class OpenCTIApiClient:
             file_vars = {}
             for file_var_item in files_vars:
                 is_multiple_files = file_var_item["multiple"]
-                var_name = "variables." + file_var_item["key"]
+                var_name = f"variables.{file_var_item['key']}"
                 if is_multiple_files:
                     # [(var_name + "." + i)] if is_multiple_files else
                     for _ in file_var_item["file"]:
-                        file_vars[str(map_index)] = [(var_name + "." + str(map_index))]
+                        file_vars[str(map_index)] = [f"{var_name}.{str(map_index)}"]
                         map_index += 1
                 else:
                     file_vars[str(map_index)] = [var_name]
@@ -309,11 +313,8 @@ class OpenCTIApiClient:
                     raise ValueError(
                         {"name": error_name, "message": main_error["data"]["reason"]}
                     )
-                else:
-                    logging.error(main_error["message"])
-                    raise ValueError(
-                        {"name": error_name, "message": main_error["message"]}
-                    )
+                logging.error(main_error["message"])
+                raise ValueError({"name": error_name, "message": main_error["message"]})
             else:
                 return result
         else:
@@ -340,7 +341,8 @@ class OpenCTIApiClient:
             return base64.b64encode(r.text).decode("utf-8")
         return r.text
 
-    def log(self, level, message):
+    @staticmethod
+    def log(level, message):
         """log a message with defined log level
 
         :param level: must be a valid logging log level (debug, info, warning, error)
@@ -354,7 +356,7 @@ class OpenCTIApiClient:
         elif level == "info":
             logging.info(message)
         elif level == "warning":
-            logging.warn(message)
+            logging.warning(message)
         elif level == "error":
             logging.error(message)
 
@@ -368,7 +370,7 @@ class OpenCTIApiClient:
             test = self.threat_actor.list(first=1)
             if test is not None:
                 return True
-        except:
+        except:  # pylint: disable=bare-except
             return False
         return False
 
@@ -413,8 +415,7 @@ class OpenCTIApiClient:
             if isinstance(value, str):
                 if len(value) > 0:
                     return True
-                else:
-                    return False
+                return False
             if isinstance(value, dict):
                 return bool(value)
             if isinstance(value, list):
@@ -427,10 +428,8 @@ class OpenCTIApiClient:
                 return True
             if isinstance(value, int):
                 return True
-            else:
-                return False
-        else:
             return False
+        return False
 
     def process_multiple(self, data: dict, with_pagination=False) -> Union[dict, list]:
         """processes data returned by the OpenCTI API with multiple entities
@@ -458,7 +457,8 @@ class OpenCTIApiClient:
             result["pagination"] = data["pageInfo"]
         return result
 
-    def process_multiple_ids(self, data) -> list:
+    @staticmethod
+    def process_multiple_ids(data) -> list:
         """processes data returned by the OpenCTI API with multiple ids
 
         :param data: data to process

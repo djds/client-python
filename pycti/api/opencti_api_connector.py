@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any, Dict
 
-from pycti.connector.opencti_connector import OpenCTIConnector
+from ..connector.opencti_connector import OpenCTIConnector
 
 
 class OpenCTIApiConnector:
@@ -38,8 +38,7 @@ class OpenCTIApiConnector:
                 }
             }
         """
-        result = self.api.query(query)
-        return result["data"]["connectors"]
+        return self.api.query(query)["data"]["connectors"]
 
     def ping(self, connector_id: str, connector_state: Any) -> Dict:
         """pings a connector by id and state
@@ -60,10 +59,9 @@ class OpenCTIApiConnector:
                 }
             }
            """
-        result = self.api.query(
+        return self.api.query(
             query, {"id": connector_id, "state": json.dumps(connector_state)}
-        )
-        return result["data"]["pingConnector"]
+        )["data"]["pingConnector"]
 
     def register(self, connector: OpenCTIConnector) -> Dict:
         """register a connector with OpenCTI
@@ -98,8 +96,7 @@ class OpenCTIApiConnector:
                 }
             }
            """
-        result = self.api.query(query, connector.to_input())
-        return result["data"]["registerConnector"]
+        return self.api.query(query, connector.to_input())["data"]["registerConnector"]
 
     def unregister(self, _id: str) -> Dict:
         """unregister a connector with OpenCTI

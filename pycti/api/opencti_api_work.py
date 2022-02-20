@@ -10,7 +10,7 @@ class OpenCTIApiWork:
         self.api = api
 
     def to_received(self, work_id: str, message: str):
-        logging.info("Reporting work update_received " + work_id)
+        logging.info(f"Reporting work update_received {work_id}")
         query = """
             mutation workToReceived($id: ID!, $message: String) {
                 workEdit(id: $id) {
@@ -21,7 +21,7 @@ class OpenCTIApiWork:
         self.api.query(query, {"id": work_id, "message": message})
 
     def to_processed(self, work_id: str, message: str, in_error: bool = False):
-        logging.info("Reporting work update_received " + work_id)
+        logging.info(f"Reporting work update_received {work_id}")
         query = """
             mutation workToProcessed($id: ID!, $message: String, $inError: Boolean) {
                 workEdit(id: $id) {
@@ -32,7 +32,7 @@ class OpenCTIApiWork:
         self.api.query(query, {"id": work_id, "message": message, "inError": in_error})
 
     def ping(self, work_id: str):
-        logging.info("Ping work " + work_id)
+        logging.info(f"Ping work {work_id}")
         query = """
             mutation pingWork($id: ID!) {
                 workEdit(id: $id) {
@@ -43,7 +43,7 @@ class OpenCTIApiWork:
         self.api.query(query, {"id": work_id})
 
     def report_expectation(self, work_id: str, error):
-        logging.info("Report expectation for " + work_id)
+        logging.info(f"Report expectation for {work_id}")
         query = """
             mutation reportExpectation($id: ID!, $error: WorkErrorInput) {
                 workEdit(id: $id) {
@@ -57,9 +57,7 @@ class OpenCTIApiWork:
             self.api.log("error", "Cannot report expectation")
 
     def add_expectations(self, work_id: str, expectations: int):
-        logging.info(
-            "Update action expectations " + work_id + " - " + str(expectations)
-        )
+        logging.info(f"Update action expectations {work_id} - {str(expectations)}")
         query = """
             mutation addExpectations($id: ID!, $expectations: Int) {
                 workEdit(id: $id) {
@@ -73,7 +71,7 @@ class OpenCTIApiWork:
             self.api.log("error", "Cannot report expectation")
 
     def initiate_work(self, connector_id: str, friendly_name: str) -> str:
-        logging.info("Initiate work for " + connector_id)
+        logging.info(f"Initiate work for {connector_id}")
         query = """
             mutation workAdd($connectorId: String!, $friendlyName: String) {
                 workAdd(connectorId: $connectorId, friendlyName: $friendlyName) {
