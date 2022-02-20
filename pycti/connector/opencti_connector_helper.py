@@ -1,5 +1,4 @@
 import base64
-import datetime
 import json
 import logging
 import os
@@ -8,24 +7,25 @@ import sys
 import threading
 import time
 import uuid
-from typing import Callable, Dict, List, Optional, Union
+from datetime import datetime, timezone
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import pika
 from pika.exceptions import NackError, UnroutableError
 from sseclient import SSEClient
 
-from pycti.api.opencti_api_client import OpenCTIApiClient
-from pycti.connector.opencti_connector import OpenCTIConnector
-from pycti.utils.opencti_stix2_splitter import OpenCTIStix2Splitter
+from ..api.opencti_api_client import OpenCTIApiClient
+from ..connector.opencti_connector import OpenCTIConnector
+from ..utils.opencti_stix2_splitter import OpenCTIStix2Splitter
 
-TRUTHY: List[str] = ["yes", "true", "True"]
-FALSY: List[str] = ["no", "false", "False"]
+TRUTHY: Tuple[str] = ("yes", "true", "True")
+FALSY: Tuple[str] = ("no", "false", "False")
 
 
 def get_config_variable(
     env_var: str,
-    yaml_path: List,
-    config: Dict = {},
+    yaml_path: List[str],
+    config: Optional[Dict] = None,
     isNumber: Optional[bool] = False,
     default=None,
 ) -> Union[bool, int, None, str]:
@@ -36,6 +36,8 @@ def get_config_variable(
     :param config: client config dict, defaults to {}
     :param isNumber: specify if the variable is a number, defaults to False
     """
+    if config is None:
+        config = {}  # avoid dangerous mutable default args
 
     if os.getenv(env_var) is not None:
         result = os.getenv(env_var)
@@ -110,7 +112,7 @@ class ListenQueue(threading.Thread):
         self.thread = None
 
     # noinspection PyUnusedLocal
-    def _process_message(self, channel, method, properties, body) -> None:
+    def _process_message(self, channel, method, _properties, body) -> None:
         """process a message from the rabbit queue
 
         :param channel: channel instance
@@ -207,7 +209,7 @@ class PingAlive(threading.Thread):
     def __init__(self, connector_id, api, get_state, set_state) -> None:
         threading.Thread.__init__(self)
         self.connector_id = connector_id
-        self.in_error = False
+        self.in_error: bool = False
         self.api = api
         self.get_state = get_state
         self.set_state = set_state
@@ -257,8 +259,8 @@ class ListenStream(threading.Thread):
         threading.Thread.__init__(self)
         self.helper = helper
         self.callback = callback
-        self.url = url
-        self.token = token
+        self.url: str = url
+        self.token: str = token
         self.verify_ssl = verify_ssl
         self.start_timestamp = start_timestamp
         self.live_stream_id = live_stream_id
@@ -354,7 +356,7 @@ class ListenStream(threading.Thread):
         for msg in messages:
             if self.exit:
                 break
-            if msg.event == "heartbeat" or msg.event == "connected":
+            if msg.event in ("heartbeat", "connected"):
                 continue
             if msg.event == "sync":
                 if msg.id is not None:
@@ -368,7 +370,7 @@ class ListenStream(threading.Thread):
                     state["connectorLastEventId"] = str(msg.id)
                     self.helper.set_state(state)
 
-    def stop(self):
+    def stop(self) -> None:
         self.exit = True
 
 
@@ -564,7 +566,7 @@ class OpenCTIConnectorHelper:  # pylint: disable=too-many-public-methods
         message_callback,
         url=None,
         token=None,
-        verify_ssl=None,
+        verify_ssl: Optional[Union[bool, str]] = None,
         start_timestamp=None,
         live_stream_id=None,
     ) -> ListenStream:
@@ -594,28 +596,29 @@ class OpenCTIConnectorHelper:  # pylint: disable=too-many-public-methods
     def get_connector(self) -> OpenCTIConnector:
         return self.connector
 
-    def log_error(self, msg: str) -> None:
+    @staticmethod
+    def log_error(msg: str) -> None:
         logging.error(msg)
 
-    def log_info(self, msg: str) -> None:
+    @staticmethod
+    def log_info(msg: str) -> None:
         logging.info(msg)
 
-    def log_debug(self, msg: str) -> None:
+    @staticmethod
+    def log_debug(msg: str) -> None:
         logging.debug(msg)
 
-    def log_warning(self, msg: str) -> None:
+    @staticmethod
+    def log_warning(msg: str) -> None:
         logging.warning(msg)
 
-    def date_now(self) -> str:
+    @staticmethod
+    def date_now() -> str:
         """get the current date (UTC)
         :return: current datetime for utc
         :rtype: str
         """
-        return (
-            datetime.datetime.utcnow()
-            .replace(microsecond=0, tzinfo=datetime.timezone.utc)
-            .isoformat()
-        )
+        return datetime.utcnow().replace(microsecond=0, tzinfo=timezone.utc).isoformat()
 
     # Push Stix2 helper
     def send_stix2_bundle(self, bundle, **kwargs) -> list:
